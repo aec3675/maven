@@ -55,7 +55,7 @@ def train_sweep(config=None):
         cpus_per_task = int(os.getenv("SLURM_CPUS_PER_TASK", 1))
 
         # Assuming you want to leave one CPU for overhead
-        num_workers = max(1, cpus_per_task - 1)
+        num_workers = 0 #max(1, cpus_per_task - 1)
         print(f"Using {num_workers} workers for data loading", flush=True)
 
         train_loader = DataLoader(
