@@ -181,3 +181,6 @@ lightning_logs
 lightcurves_bulk
 *.parquet
 __MACOSX
+data/ZTFBTS/
+data/ZTFBTS_spectra/
+data/sim_data/
