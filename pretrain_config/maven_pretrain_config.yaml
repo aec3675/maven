@@ -2,7 +2,7 @@ method: grid
 metric:
   goal: minimize
   name: best_val_loss
-entity: multimodal-supernovae
+entity: metal_uva #multimodal-supernovae
 project: multimodal
 parameters:
   hidden_dim:
