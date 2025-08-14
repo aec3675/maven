@@ -431,11 +431,11 @@ def make_padding_mask(n_obs: int, n_max_obs: int) -> np.ndarray:
     if n_obs > n_max_obs:
         # Sample n_max_obs observations randomly (note order doesn't matter and the replace flag guarantees no double datapoints)
         indices = np.random.choice(n_obs, n_max_obs, replace=False)
-        mask = np.ones(n_max_obs, dtype=bool)
+        mask = np.ones(n_max_obs, dtype=np.uint8) #dtype=bool)
     else:
         # Pad the arrays with zeros and create a mask
         indices = np.arange(n_obs)
-        mask = np.zeros(n_max_obs, dtype=bool)
+        mask = np.zeros(n_max_obs, dtype=np.uint8) #dtype=bool)
         mask[: len(indices)] = True
 
     return indices, mask
