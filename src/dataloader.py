@@ -20,6 +20,8 @@ from src.utils import filter_files, find_indices_in_arrays
 from sklearn.model_selection import StratifiedKFold
 import extinction
 
+from datetime import datetime
+
 
 # Custom data loader with noise augmentation using magerr
 class NoisyDataLoader(DataLoader):
@@ -1089,22 +1091,23 @@ class SimulationDataset(Dataset):
         self.noise = noise
 
         # Open the HDF5 file
-        file = h5py.File(self.hdf5_path, "r")
-        self.file = file
+        with h5py.File(self.hdf5_path, "r") as file:
+            # file = h5py.File(self.hdf5_path, "r")
+            self.file = file
 
-        transients = file["Photometry"]
-        # Default to using all keys if no specific types are provided
-        if transient_types is None:
-            transient_types = list(transients.keys())
-        self.transient_types = transient_types
+            transients = file["Photometry"]
+            # Default to using all keys if no specific types are provided
+            if transient_types is None:
+                transient_types = list(transients.keys())
+            self.transient_types = transient_types
 
-        # Pre-calculate indices for each entry
-        self.index_map = []
-        for t_type in self.transient_types:
-            for model in transients[t_type].keys():
-                num_entries = len(transients[t_type][model]["mjd"])
-                for i in range(num_entries):
-                    self.index_map.append((t_type, model, i))
+            # Pre-calculate indices for each entry
+            self.index_map = []
+            for t_type in self.transient_types:
+                for model in transients[t_type].keys():
+                    num_entries = len(transients[t_type][model]["mjd"])
+                    for i in range(num_entries):
+                        self.index_map.append((t_type, model, i))
 
     def __len__(self) -> int:
         """Returns the number of entries in the dataset."""
@@ -1123,6 +1126,8 @@ class SimulationDataset(Dataset):
         Returns:
             Tuple: A tuple containing: mag, time, mask, magerr, spec, freq, maskspec, redshift
         """
+        print('start getitem time', datetime.now(),'\n')
+
         t_type, model, entry_idx = self.index_map[idx]
         mag, time, mask, magerr, spec, freq, maskspec, redshift = {
             torch.empty(0),
@@ -1214,6 +1219,8 @@ class SimulationDataset(Dataset):
             freq = torch.tensor(freq_data).float()
             spec = torch.tensor(spec_data).float()
             maskspec = torch.tensor(maskspec).bool()
+        
+        print('end getitem time', datetime.now(),'\n')
 
         # first and last are placeholders for img and classifications which are needed for clip model
         return (
