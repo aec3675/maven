@@ -1091,23 +1091,23 @@ class SimulationDataset(Dataset):
         self.noise = noise
 
         # Open the HDF5 file
-        with h5py.File(self.hdf5_path, "r") as file:
-            # file = h5py.File(self.hdf5_path, "r")
-            self.file = file
+        # with h5py.File(self.hdf5_path, "r") as file:
+        file = h5py.File(self.hdf5_path, "r")
+        self.file = file
 
-            transients = file["Photometry"]
-            # Default to using all keys if no specific types are provided
-            if transient_types is None:
-                transient_types = list(transients.keys())
-            self.transient_types = transient_types
+        transients = file["Photometry"]
+        # Default to using all keys if no specific types are provided
+        if transient_types is None:
+            transient_types = list(transients.keys())
+        self.transient_types = transient_types
 
-            # Pre-calculate indices for each entry
-            self.index_map = []
-            for t_type in self.transient_types:
-                for model in transients[t_type].keys():
-                    num_entries = len(transients[t_type][model]["mjd"])
-                    for i in range(num_entries):
-                        self.index_map.append((t_type, model, i))
+        # Pre-calculate indices for each entry
+        self.index_map = []
+        for t_type in self.transient_types:
+            for model in transients[t_type].keys():
+                num_entries = len(transients[t_type][model]["mjd"])
+                for i in range(num_entries):
+                    self.index_map.append((t_type, model, i))
 
     def __len__(self) -> int:
         """Returns the number of entries in the dataset."""
