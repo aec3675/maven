@@ -360,7 +360,6 @@ def load_redshifts(data_dir: str, filenames: List[str] = None) -> np.ndarray:
     else:
         # Filter redshifts based on the filenames
         redshifts = df[df["ZTFID"].isin(filenames)]["redshift"].values
-
         filenames_redshift = df[df["ZTFID"].isin(filenames)]["ZTFID"].values
 
     print("Finished loading redshift")
@@ -392,11 +391,14 @@ def load_classes(
     df.loc[df["type"] == "SN Ic", "type"] = "SN Ibc"
     df.loc[df["type"] == "SN Ib/c", "type"] = "SN Ibc"
     df.loc[df["type"] == "SN IIP", "type"] = "SN II"
+    df.loc[df["type"] == "SN IIb", "type"] = "SN II" #NOTE: placeholder type conversion
 
     if n_classes == 5:
         df = df[df["type"].isin(["SN Ia", "SN Ibc", "SLSN-I", "SN II", "SN IIn"])]
     elif n_classes == 3:
         df = df[df["type"].isin(["SN Ia", "SN Ibc", "SN II"])]
+    elif n_classes == 1: #NOTE: placeholder for testing
+        df = df[df["type"].isin(["SN II"])]
 
     # Use the Series to map the names to types
     class_types = df["type"].values
@@ -1126,8 +1128,6 @@ class SimulationDataset(Dataset):
         Returns:
             Tuple: A tuple containing: mag, time, mask, magerr, spec, freq, maskspec, redshift
         """
-        print('start getitem time', datetime.now(),'\n')
-
         t_type, model, entry_idx = self.index_map[idx]
         mag, time, mask, magerr, spec, freq, maskspec, redshift = {
             torch.empty(0),
@@ -1220,8 +1220,6 @@ class SimulationDataset(Dataset):
             spec = torch.tensor(spec_data).float()
             maskspec = torch.tensor(maskspec).bool()
         
-        print('end getitem time', datetime.now(),'\n')
-
         # first and last are placeholders for img and classifications which are needed for clip model
         return (
             torch.empty(0),
