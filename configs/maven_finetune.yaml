@@ -34,7 +34,7 @@ extra_args:
     models/clip_pretrain_noiseless/scarlet-sweep-1/epoch=337-step=5016934.ckpt
   freeze_backbone: false
   kfolds: 5
-  combinations: [spectral] #lightcurve
+  combinations: ['lightcurve', 'spectral'] #lightcurve
   regression: false
   nruns: 5
   max_spectral_data_len: 220

@@ -319,10 +319,12 @@ class LightCurveImageCLIP(pl.LightningModule):
             t_sp,
             mask_sp,
             redshift,
-            classification,
+            # classification,
+            multipeak,
         ) = batch
         x = self(
-            x_img, x_lc, t_lc, mask_lc, x_sp, t_sp, mask_sp, redshift, classification
+            # x_img, x_lc, t_lc, mask_lc, x_sp, t_sp, mask_sp, redshift, classification
+            x_img, x_lc, t_lc, mask_lc, x_sp, t_sp, mask_sp, redshift, multipeak
         )
 
         if self.regression:
@@ -340,16 +342,21 @@ class LightCurveImageCLIP(pl.LightningModule):
                 )
             elif self.n_classes == 3:
                 class_weights = torch.tensor([0.33, 0.06, 1.0]).to(x.device).float()
+            elif self.n_classes == 2:
+                class_weights = torch.tensor([0.8, 0.2]).to(x.device).float()
             else:
                 # if we can't figure out the classification don't reweight
                 class_weights = torch.ones(self.n_classes).to(x.device).float()
+            # class_weights = torch.ones(self.n_classes).to(x.device).float()
 
             loss = nn.CrossEntropyLoss(weight=class_weights)(
-                x.squeeze(), classification.long()
+                # x.squeeze(), classification.long()
+                x.squeeze(), multipeak.long()
             )
 
             self.y_pred.append(x)
-            self.y_true.append(classification)
+            # self.y_true.append(classification)
+            self.y_true.append(multipeak)
 
         elif self.loss == "sigmoid":
             loss = sigmoid_loss_multimodal(x, self.logit_scale, self.logit_bias).mean()
@@ -432,10 +439,12 @@ class LightCurveImageCLIP(pl.LightningModule):
             t_sp,
             mask_sp,
             redshift,
-            classification,
+            # classification,
+            multipeak
         ) = batch
         x = self(
-            x_img, x_lc, t_lc, mask_lc, x_sp, t_sp, mask_sp, redshift, classification
+            # x_img, x_lc, t_lc, mask_lc, x_sp, t_sp, mask_sp, redshift, classification, multipeak
+            x_img, x_lc, t_lc, mask_lc, x_sp, t_sp, mask_sp, redshift, multipeak
         )
         #print("validation", flush=True)
 
@@ -454,16 +463,21 @@ class LightCurveImageCLIP(pl.LightningModule):
                 )
             elif self.n_classes == 3:
                 class_weights = torch.tensor([0.33, 0.06, 1.0]).to(x.device).float()
+            elif self.n_classes == 2:
+                class_weights = torch.tensor([0.8, 0.2]).to(x.device).float()
             else:
                 # if we can't figure out the classification don't reweight
                 class_weights = torch.ones(self.n_classes).to(x.device).float()
+            # class_weights = torch.ones(self.n_classes).to(x.device).float()
 
             loss = nn.CrossEntropyLoss(weight=class_weights)(
-                x.squeeze(), classification.long()
+                # x.squeeze(), classification.long()
+                x.squeeze(), multipeak.long()
             )
 
             self.y_pred_val.append(x)
-            self.y_true_val.append(classification)
+            # self.y_true_val.append(classification)
+            self.y_true_val.append(multipeak)
 
         elif self.loss == "sigmoid":
             for i in range(len(self.embs_list)):
@@ -607,7 +621,8 @@ def initialize_model(
         combinations = cfg_extra_args["combinations"]
     regression = cfg_extra_args.get("regression", False)
     classification = cfg_extra_args.get("classification", False)
-    n_classes = cfg_extra_args.get("n_classes", 5)
+    # n_classes = cfg_extra_args.get("n_classes", 5) #TODO: edit this????
+    n_classes = cfg_extra_args.get("n_classes", 2)
 
     # You cannot have both classification and regression in this codebase
     assert not (classification and regression)
@@ -759,7 +774,7 @@ def load_model(
 
 
 def load_pretrain_lc_model(
-    pretrain_lc_path: Optional[str], clip_model: nn.Module, freeze_backbone_lc: bool
+    pretrain_lc_path: Optional[str], clip_model: nn.Module, freeze_backbone_lc: bool, device: Optional[str],
 ) -> None:
     """
     Loads a pretrained lightcurve model from a specified path, modifies its state dictionary,
@@ -776,7 +791,7 @@ def load_pretrain_lc_model(
     """
     # Loading up pretrained models
     if pretrain_lc_path:
-        pre = torch.load(pretrain_lc_path)
+        pre = torch.load(pretrain_lc_path, map_location=device)
         # Preparing data to be processed by the model
         new_dict = {
             k.replace("net.", ""): v
@@ -796,7 +811,7 @@ def load_pretrain_lc_model(
 
 
 def load_pretrain_clip_model(
-    pretrain_path: Optional[str], clip_model: nn.Module, freeze_backbone: bool
+    pretrain_path: Optional[str], clip_model: nn.Module, freeze_backbone: bool, device: Optional[str]
 ) -> None:
     """
     Loads a pretrained lightcurve model from a specified path, modifies its state dictionary,
@@ -813,7 +828,7 @@ def load_pretrain_clip_model(
     """
     # Loading up pretrained models
     if pretrain_path:
-        pre = torch.load(pretrain_path)
+        pre = torch.load(pretrain_path, map_location=device)
         clip_model.load_state_dict(pre["state_dict"],strict = False)
 
         # Freezing pretrained backbone if required
@@ -936,7 +951,8 @@ class ClipMLP(pl.LightningModule):
             t_sp,
             mask_sp,
             redshift,
-            classification,
+            # classification,
+            multipeak,
         ) = batch
         x = self(x_lc, t_lc, mask_lc, x_sp, t_sp, mask_sp)
 
@@ -955,16 +971,21 @@ class ClipMLP(pl.LightningModule):
                 )
             elif self.n_classes == 3:
                 class_weights = torch.tensor([0.33, 0.06, 1.0]).to(x.device).float()
+            elif self.n_classes == 2:
+                class_weights = torch.tensor([0.8, 0.2]).to(x.device).float()
             else:
                 # if we can't figure out the classification don't reweight
                 class_weights = torch.ones(self.n_classes).to(x.device).float()
+            # class_weights = torch.ones(self.n_classes).to(x.device).float()
 
             loss = nn.CrossEntropyLoss(weight=class_weights)(
-                x.squeeze(), classification.long()
+                # x.squeeze(), classification.long()
+                x.squeeze(), multipeak.long()
             )
 
             self.y_pred.append(x)
-            self.y_true.append(classification)
+            # self.y_true.append(classification)
+            self.y_true.append(multipeak)
 
         self.log(
             "train_loss", loss, on_epoch=True, on_step=False, prog_bar=True, logger=True
@@ -1037,7 +1058,8 @@ class ClipMLP(pl.LightningModule):
             t_sp,
             mask_sp,
             redshift,
-            classification,
+            # classification,
+            multipeak,
         ) = batch
         x = self(x_lc, t_lc, mask_lc, x_sp, t_sp, mask_sp)
 
@@ -1056,16 +1078,21 @@ class ClipMLP(pl.LightningModule):
                 )
             elif self.n_classes == 3:
                 class_weights = torch.tensor([0.33, 0.06, 1.0]).to(x.device).float()
+            elif self.n_classes == 2:
+                class_weights = torch.tensor([0.8, 0.2]).to(x.device).float()
             else:
                 # if we can't figure out the classification don't reweight
                 class_weights = torch.ones(self.n_classes).to(x.device).float()
+            # class_weights = torch.ones(self.n_classes).to(x.device).float()
 
             loss = nn.CrossEntropyLoss(weight=class_weights)(
-                x.squeeze(), classification.long()
+                # x.squeeze(), classification.long()
+                x.squeeze(), multipeak.long()
             )
 
             self.y_pred_val.append(x)
-            self.y_true_val.append(classification)
+            # self.y_true_val.append(classification)
+            self.y_true_val.append(multipeak)
 
         self.log(
             "val_loss", loss, on_epoch=True, on_step=False, prog_bar=True, logger=True

@@ -1,4 +1,5 @@
 import os
+import glob
 import torch
 import h5py
 import numpy as np
@@ -50,7 +51,7 @@ class NoisyDataLoader(DataLoader):
         batch_size: int,
         noise_level_img: float,
         noise_level_mag: float,
-        combinations: Optional[List[str]] = ["host_galaxy", "spectral"],
+        combinations: Optional[List[str]] = ["lightcurve", "spectral"], #host_galaxy
         shuffle: bool = True,
         **kwargs,
     ):
@@ -63,20 +64,20 @@ class NoisyDataLoader(DataLoader):
             self.combinations.remove("meta")
 
         # Checking if we get the right output
-        if len(next(iter(dataset))) == 10:
+        if len(next(iter(dataset))) == 10: #10
             assert "lightcurve" in self.combinations
             assert "host_galaxy" not in self.combinations
             assert "spectral" in self.combinations
-        elif len(next(iter(dataset))) == 11:
+        elif len(next(iter(dataset))) == 11: #11
             assert "lightcurve" in self.combinations
             assert "host_galaxy" in self.combinations
             assert "spectral" in self.combinations
-        elif len(next(iter(dataset))) == 7:
+        elif len(next(iter(dataset))) == 7: #7
             assert "lightcurve" in self.combinations or "spectral" in self.combinations
             assert "host_galaxy" in self.combinations
-        elif len(next(iter(dataset))) == 3:
+        elif len(next(iter(dataset))) == 3: #3
             assert "host_galaxy" in self.combinations and len(self.combinations) == 1
-        elif len(next(iter(dataset))) == 6:
+        elif len(next(iter(dataset))) == 6: #6
             assert (
                 "lightcurve" in self.combinations or "spectral" in self.combinations
             ) and len(self.combinations) == 1
@@ -226,7 +227,8 @@ class NoisyDataLoader(DataLoader):
                     maskspec,
                     specerr,
                     redshift,
-                    classification,
+                    # classification,
+                    multipeak,
                 ) = batch
 
                 # Add Gaussian noise to mag using magerr
@@ -238,7 +240,8 @@ class NoisyDataLoader(DataLoader):
                 )
 
                 # Return the noisy batch (and Nones to keep outputlength the same)
-                yield None, noisy_mag, time, mask, noisy_spec, freq, maskspec, redshift, classification
+                # yield None, noisy_mag, time, mask, noisy_spec, freq, maskspec, redshift, classification, multipeak
+                yield None, noisy_mag, time, mask, noisy_spec, freq, maskspec, redshift, multipeak
 
             elif self.combinations == set(["host_galaxy", "spectral", "lightcurve"]):
                 # Add random noise to images and time-magnitude tensors
@@ -352,18 +355,48 @@ def load_redshifts(data_dir: str, filenames: List[str] = None) -> np.ndarray:
     # Load values from the CSV file
     df = pd.read_csv(f"{data_dir}/ZTFBTS_TransientTable.csv")
     df["redshift"] = pd.to_numeric(df["redshift"], errors="coerce")
-    df = df.dropna(subset=["redshift"])
+    # df = df.dropna(subset=["redshift"]) #assume all objs have redshift
 
     if filenames is None:
         redshifts = df["redshift"].values
         filenames_redshift = df["ZTFID"].values
     else:
         # Filter redshifts based on the filenames
-        redshifts = df[df["ZTFID"].isin(filenames)]["redshift"].values
-        filenames_redshift = df[df["ZTFID"].isin(filenames)]["ZTFID"].values
+        snNames = [name[0:12] for name in filenames]
+        # repeating redshift entries number of times we have spectra for single object
+        counts = df[df["ZTFID"].isin(snNames)]["ZTFID"].apply(lambda w: sum(t.lower().count(w.lower()) for t in snNames))
+        redshifts = df[df["ZTFID"].isin(snNames)]["redshift"].repeat(counts).reset_index(drop=True).values
+        # notin = df.loc[~df["ZTFID"].isin(snNames), "ZTFID"] #3 objects in table that don't have associated files
+        filenames_redshift = filenames
 
     print("Finished loading redshift")
     return redshifts, filenames_redshift
+
+def load_multipeak(data_dir: str, filenames: List[str] = None) -> np.ndarray:
+    """
+    TODO
+    """
+    print("Loading multipeaked-ness...")
+
+    # Load values from the CSV file
+    df = pd.read_csv(f"{data_dir}/ZTFBTS_TransientTable.csv")
+    df["double-peaked"] = pd.to_numeric(df["double-peaked"], errors="coerce")
+    # df = df.dropna(subset=["double-peaked"]) #assume all objs have peak label
+
+    if filenames is None:
+        multipeak = df["double-peaked"].values
+        filenames_multipeak = df["ZTFID"].values
+    else:
+        # Filter multipeak based on the filenames
+        snNames = [name[0:12] for name in filenames]
+        # repeating multipeak entries number of times we have spectra for single object
+        counts = df[df["ZTFID"].isin(snNames)]["ZTFID"].apply(lambda w: sum(t.lower().count(w.lower()) for t in snNames))
+        multipeak = df[df["ZTFID"].isin(snNames)]["double-peaked"].repeat(counts).reset_index(drop=True).values
+        # notin = df.loc[~df["ZTFID"].isin(snNames), "ZTFID"] #3 objects in table that don't have associated files
+        filenames_multipeak = filenames
+
+    print("Finished loading multipeaked-ness")
+    return multipeak, filenames_multipeak
 
 
 def load_classes(
@@ -391,14 +424,21 @@ def load_classes(
     df.loc[df["type"] == "SN Ic", "type"] = "SN Ibc"
     df.loc[df["type"] == "SN Ib/c", "type"] = "SN Ibc"
     df.loc[df["type"] == "SN IIP", "type"] = "SN II"
-    df.loc[df["type"] == "SN IIb", "type"] = "SN II" #NOTE: placeholder type conversion
+    #added as placeholder for multipeak project
+    df.loc[df["type"] == "SN IIb", "type"] = "SN Ibc" 
+    df.loc[df["type"] == "SN Ib-Ca-rich", "type"] = "SN Ibc"
+    df.loc[df["type"] == "SN Ic-Ca-rich", "type"] = "SN Ibc"
+    df.loc[df["type"] == "SN Ibn", "type"] = "SN Ibc"
+    df.loc[df["type"] == "SN Icn", "type"] = "SN Ibc"
+    df.loc[df["type"] == "SN Ic-pec", "type"] = "SN Ibc"
 
     if n_classes == 5:
         df = df[df["type"].isin(["SN Ia", "SN Ibc", "SLSN-I", "SN II", "SN IIn"])]
     elif n_classes == 3:
         df = df[df["type"].isin(["SN Ia", "SN Ibc", "SN II"])]
-    elif n_classes == 1: #NOTE: placeholder for testing
-        df = df[df["type"].isin(["SN II"])]
+    #added as placeholder for multipeak
+    elif n_classes == 1: 
+        df = df[df["type"].isin(["SN Ibc"])]
 
     # Use the Series to map the names to types
     class_types = df["type"].values
@@ -412,9 +452,13 @@ def load_classes(
         classifications = df["type_factorized"].values
         filenames_class = df["ZTFID"].values
     else:
-        # Filter classifications based on the filenames
-        classifications = df[df["ZTFID"].isin(filenames)]["type_factorized"].values
-        filenames_class = df[df["ZTFID"].isin(filenames)]
+        # Filter class based on the filenames
+        snNames = [name[0:12] for name in filenames]
+        # repeating class entries number of times we have spectra for single object
+        counts = df[df["ZTFID"].isin(snNames)]["ZTFID"].apply(lambda w: sum(t.lower().count(w.lower()) for t in snNames))
+        classifications = df[df["ZTFID"].isin(snNames)]["type_factorized"].repeat(counts).reset_index(drop=True).values
+        # notin = df.loc[~df["ZTFID"].isin(snNames), "ZTFID"] #3 objects in table that don't have associated files
+        filenames_class = filenames
 
     print("Finished loading transient classes.")
     return classifications, filenames_class
@@ -500,6 +544,7 @@ def load_lightcurves(
     for filename in tqdm(filenames):
         if filename.endswith(".csv"):
             snName = Path(filename).stem  # Get the filename without the extension
+            snName = snName[0:12] #removing _X
             if snName not in df["ZTFID"].values:
                 continue
 
@@ -608,6 +653,7 @@ def load_spectras(
     """
 
     print("Loading spectra ...")
+    # dir_data = f"{data_dir}/spectra/"
     dir_data = f"{data_dir}"
 
     def open_spectra_csv(filename: str) -> pd.DataFrame:
@@ -680,6 +726,7 @@ def load_spectras(
     specerr_ary = np.array(specerr_list)
     mask_ary = np.array(mask_list)
 
+    print('Finished loading spectra...')
     return freq_ary, spec_ary, specerr_ary, mask_ary, filenames_loaded
 
 
@@ -798,8 +845,7 @@ def load_data(
     The function also handles loading redshift and classification labels, organizing all into a TensorDataset
     suitable for machine learning models. The list of folds for cross-validation is prepared if kfolds is specified,
     with each dictionary in the list representing a fold containing training and testing indices.
-    """
-
+    """    
     # Decision based on whether spectra data is available
     if spectra_dir is None:
         spectra_dir = data_dir
@@ -875,32 +921,40 @@ def load_data(
     # Always load the redshift
     redshifts, filenames_redshift = load_redshifts(f"{data_dir}", filenames)
     _, filenames, data = filter_files(filenames_redshift, filenames, data)
-
     assert (
         list(filenames) == filenames_redshift
     ).all(), "Filtered filenames between modalities must match."
-
+    
     # Prepare dataset with spectra data
     redshifts = torch.from_numpy(redshifts).float()
     data += [redshifts]
 
-    # Load transient types
-    classifications, filenames_classifications = load_classes(
-        f"{data_dir}", n_classes, filenames
-    )
-    _, filenames, data = filter_files(filenames_classifications, filenames, data)
+    # # Load transient types
+    # classifications, filenames_classifications = load_classes(
+    #     f"{data_dir}", n_classes, filenames
+    # )
 
-    # Prepare dataset with spectra data
-    classifications = torch.from_numpy(classifications).int()
-    data += [classifications]
+    # _, filenames, data = filter_files(filenames_classifications, filenames, data)
+
+    # # Prepare dataset with spectra data
+    # classifications = torch.from_numpy(classifications).int()
+    # data += [classifications]
+
+    #Load in multipeakedness flag
+    multipeak, filenames_multipeak = load_multipeak(f"{data_dir}", filenames)
+    _, filenames, data = filter_files(filenames_multipeak, filenames, data)
+    
+    #prepare dataset w/ multipeak data
+    multipeak = torch.from_numpy(multipeak).int()
+    data += [multipeak]
 
     if kfolds is None:
         folds = None
     else:
         folds = []
         skf = StratifiedKFold(n_splits=kfolds)
-        X = classifications
-        y = classifications
+        X = multipeak #multipeak #classifications
+        y = multipeak #multipeak #classifications
         for i, (train_index, test_index) in enumerate(skf.split(X, y)):
             folds.append({"train_indices": train_index, "test_indices": test_index})
 
