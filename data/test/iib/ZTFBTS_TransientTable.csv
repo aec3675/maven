@@ -1,3 +1,3 @@
 
-ZTFID,IAUID,RA,Dec,peakt,peakfilt,peakmag,peakabs,duration,rise,fade,type,redshift,b,A_V
-ZTF18abojpnr,SN2018fzn,19:49:56.92,+59:35:33.9,374.83,r,18.716,-17.53,29.145,15.068,14.077,SN IIb,0.0375,16.2308781,0.229
+ZTFID,IAUID,RA,Dec,peakt,peakfilt,peakmag,peakabs,duration,rise,fade,type,redshift,b,A_V,double-peaked
+ZTF18abojpnr,SN2018fzn,19:49:56.92,+59:35:33.9,374.83,r,18.716,-17.53,29.145,15.068,14.077,SN IIb,0.0375,16.2308781,0.229,0
