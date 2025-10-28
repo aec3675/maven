@@ -167,12 +167,12 @@ def train_sweep(config=None):
 
         wandb_logger = WandbLogger()
         checkpoint_callback = ModelCheckpoint(
-            dirpath=path_run, save_top_k=2, monitor="val_loss"
+            dirpath=path_run, save_top_k=2, monitor="val_loss", #every_n_epochs=1,
         )
         early_stop_callback = EarlyStopping(
             monitor="val_loss",
             min_delta=0.00,
-            patience=cfg.patience,
+            patience=cfg.patience, #TODO: maybe change to 10
             verbose=False,
             mode="min",
         )
@@ -193,7 +193,7 @@ def train_sweep(config=None):
             wandb.define_metric("AUC_val", summary="max")
 
         trainer.fit(
-            model=model, train_dataloaders=train_loader, val_dataloaders=val_loader
+            model=model, train_dataloaders=train_loader, val_dataloaders=val_loader, 
         )
 
         if (not regression) and (not classification):
