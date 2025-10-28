@@ -35,82 +35,84 @@ set_seed(0)
 KNNparameters = [1,2,3,5,7,8,9]
 
 directories = [
-    "models/clip_finetune",
-    "models/clip_noiselesssimpretrain_clipreal",
-    "models/clip_noiselesssimpretrain_clipreal_flatz",
-    "models/clip_noiselesssimpretrain_clipreal_lc_meta_flatz",
-    "models/clip_noisysimpretrain_clipreal",
-    "models/clip_noisysimpretrain_clipreal_flatz",
-    #"models/clip_pretrain_noiseless",
-    #"models/clip_pretrain_noiseless_flatz",
-    #"models/clip_pretrain_noiseless_lc_spectral_meta_flatz",
-    #"models/clip_pretrain_noisy",
-    #"models/clip_pretrain_noisy_flatz",
-    "models/clip_real",
-    "models/clip_real_lc_meta",
-    "models/clip_real_lc_spectral_meta",
-    "models/lc_3way_f1",
-    "models/lc_3way_f1_masked_noiseless_f15_backbonefrozen",
-    "models/lc_3way_f1_masked_noiseless_f15_backbonenotfrozen",
-    "models/lc_3way_f1_masked_noiseless_f25_backbonefrozen",
-    "models/lc_3way_f1_masked_noiseless_f25_backbonenotfrozen",
-    "models/lc_5way_f1",
-    "models/lc_5way_f1_masked_noiseless_f15_backbonefrozen",
-    "models/lc_5way_f1_masked_noiseless_f15_backbonenotfrozen",
-    "models/lc_5way_f1_masked_noiseless_f25_backbonefrozen",
-    "models/lc_5way_f1_masked_noiseless_f25_backbonenotfrozen",
-    "models/lc_reg",
-    "models/lc_reg_masked_noiseless_f15_backbonefrozen",
-    "models/lc_reg_masked_noiseless_f15_backbonenotfrozen",
-    "models/lc_reg_masked_noiseless_f25_backbonefrozen",
-    "models/lc_reg_masked_noiseless_f25_backbonenotfrozen",
-    "models/masked_pretraining_noiseless_backbonefrozen",
-    "models/masked_pretraining_noiseless_backbonenotfrozen",
-    "models/masked_pretraining_noiseless_f15",
-    "models/masked_pretraining_noiseless_f25",
-    "models/masked_pretraining_noiseless_f45",
-    "models/sp_3way_f1",
-    "models/sp_5way_f1",
-    "models/sp_reg",
+    "models/multipeak-finetune",
+    # "models/clip_finetune",
+    # "models/clip_noiselesssimpretrain_clipreal",
+    # "models/clip_noiselesssimpretrain_clipreal_flatz",
+    # "models/clip_noiselesssimpretrain_clipreal_lc_meta_flatz",
+    # "models/clip_noisysimpretrain_clipreal",
+    # "models/clip_noisysimpretrain_clipreal_flatz",
+    # #"models/clip_pretrain_noiseless",
+    # #"models/clip_pretrain_noiseless_flatz",
+    # #"models/clip_pretrain_noiseless_lc_spectral_meta_flatz",
+    # #"models/clip_pretrain_noisy",
+    # #"models/clip_pretrain_noisy_flatz",
+    # "models/clip_real",
+    # "models/clip_real_lc_meta",
+    # "models/clip_real_lc_spectral_meta",
+    # "models/lc_3way_f1",
+    # "models/lc_3way_f1_masked_noiseless_f15_backbonefrozen",
+    # "models/lc_3way_f1_masked_noiseless_f15_backbonenotfrozen",
+    # "models/lc_3way_f1_masked_noiseless_f25_backbonefrozen",
+    # "models/lc_3way_f1_masked_noiseless_f25_backbonenotfrozen",
+    # "models/lc_5way_f1",
+    # "models/lc_5way_f1_masked_noiseless_f15_backbonefrozen",
+    # "models/lc_5way_f1_masked_noiseless_f15_backbonenotfrozen",
+    # "models/lc_5way_f1_masked_noiseless_f25_backbonefrozen",
+    # "models/lc_5way_f1_masked_noiseless_f25_backbonenotfrozen",
+    # "models/lc_reg",
+    # "models/lc_reg_masked_noiseless_f15_backbonefrozen",
+    # "models/lc_reg_masked_noiseless_f15_backbonenotfrozen",
+    # "models/lc_reg_masked_noiseless_f25_backbonefrozen",
+    # "models/lc_reg_masked_noiseless_f25_backbonenotfrozen",
+    # "models/masked_pretraining_noiseless_backbonefrozen",
+    # "models/masked_pretraining_noiseless_backbonenotfrozen",
+    # "models/masked_pretraining_noiseless_f15",
+    # "models/masked_pretraining_noiseless_f25",
+    # "models/masked_pretraining_noiseless_f45",
+    # "models/sp_3way_f1",
+    # "models/sp_5way_f1",
+    # "models/sp_reg",
 ]  # "ENDtoEND",
 names = [
-    "clip-finetune",
-    "clip-noiselesssimpretrain-clipreal",
-    "clip-noiselesssimpretrain-clipreal-flatz",
-    "clip-noiselesssimpretrain-clipreal-lc-meta-flatz",
-    "clip-noisysimpretrain-clipreal",
-    "clip-noisysimpretrain-clipreal-flatz",
-    #"clip-pretrain-noiseless",
-    #"clip-pretrain-noiseless-flatz",
-    #"clip-pretrain-noiseless-lc-spectral-meta-flatz",
-    #"clip-pretrain-noisy",
-    #"clip-pretrain-noisy-flatz",
-    "clip-real",
-    "clip-real-lc-meta",
-    "clip-real-lc-spectral-meta",
-    "lc-3way-f1",
-    "lc-3way-f1-masked-noiseless-f15-backbonefrozen",
-    "lc-3way-f1-masked-noiseless-f15-backbonenotfrozen",
-    "lc-3way-f1-masked-noiseless-f25-backbonefrozen",
-    "lc-3way-f1-masked-noiseless-f25-backbonenotfrozen",
-    "lc-5way-f1",
-    "lc-5way-f1-masked-noiseless-f15-backbonefrozen",
-    "lc-5way-f1-masked-noiseless-f15-backbonenotfrozen",
-    "lc-5way-f1-masked-noiseless-f25-backbonefrozen",
-    "lc-5way-f1-masked-noiseless-f25-backbonenotfrozen",
-    "lc-reg",
-    "lc-reg-masked-noiseless-f15-backbonefrozen",
-    "lc-reg-masked-noiseless-f15-backbonenotfrozen",
-    "lc-reg-masked-noiseless-f25-backbonefrozen",
-    "lc-reg-masked-noiseless-f25-backbonenotfrozen",
-    "masked-pretraining-noiseless-backbonefrozen",
-    "masked-pretraining-noiseless-backbonenotfrozen",
-    "masked-pretraining-noiseless-f15",
-    "masked-pretraining-noiseless-f25",
-    "masked-pretraining-noiseless-f45",
-    "sp-3way-f1",
-    "sp-5way-f1",
-    "sp-reg",
+    "multipeak-finetune",
+    # "clip-finetune",
+    # "clip-noiselesssimpretrain-clipreal",
+    # "clip-noiselesssimpretrain-clipreal-flatz",
+    # "clip-noiselesssimpretrain-clipreal-lc-meta-flatz",
+    # "clip-noisysimpretrain-clipreal",
+    # "clip-noisysimpretrain-clipreal-flatz",
+    # #"clip-pretrain-noiseless",
+    # #"clip-pretrain-noiseless-flatz",
+    # #"clip-pretrain-noiseless-lc-spectral-meta-flatz",
+    # #"clip-pretrain-noisy",
+    # #"clip-pretrain-noisy-flatz",
+    # "clip-real",
+    # "clip-real-lc-meta",
+    # "clip-real-lc-spectral-meta",
+    # "lc-3way-f1",
+    # "lc-3way-f1-masked-noiseless-f15-backbonefrozen",
+    # "lc-3way-f1-masked-noiseless-f15-backbonenotfrozen",
+    # "lc-3way-f1-masked-noiseless-f25-backbonefrozen",
+    # "lc-3way-f1-masked-noiseless-f25-backbonenotfrozen",
+    # "lc-5way-f1",
+    # "lc-5way-f1-masked-noiseless-f15-backbonefrozen",
+    # "lc-5way-f1-masked-noiseless-f15-backbonenotfrozen",
+    # "lc-5way-f1-masked-noiseless-f25-backbonefrozen",
+    # "lc-5way-f1-masked-noiseless-f25-backbonenotfrozen",
+    # "lc-reg",
+    # "lc-reg-masked-noiseless-f15-backbonefrozen",
+    # "lc-reg-masked-noiseless-f15-backbonenotfrozen",
+    # "lc-reg-masked-noiseless-f25-backbonefrozen",
+    # "lc-reg-masked-noiseless-f25-backbonenotfrozen",
+    # "masked-pretraining-noiseless-backbonefrozen",
+    # "masked-pretraining-noiseless-backbonenotfrozen",
+    # "masked-pretraining-noiseless-f15",
+    # "masked-pretraining-noiseless-f25",
+    # "masked-pretraining-noiseless-f45",
+    # "sp-3way-f1",
+    # "sp-5way-f1",
+    # "sp-reg",
 ]
 models = []
 
@@ -134,20 +136,32 @@ print("finished loading models")
 
 # Data preprocessing
 
+# data_dirs = [
+#     # "/home/thelfer1/scr4_tedwar42/thelfer1/ZTFBTS/",
+#     "ZTFBTS/",
+#     "/ocean/projects/phy230064p/shared/ZTFBTS/",
+#     "data/ZTFBTS/",
+# ]
 data_dirs = [
-    # "/home/thelfer1/scr4_tedwar42/thelfer1/ZTFBTS/",
-    "ZTFBTS/",
-    "/ocean/projects/phy230064p/shared/ZTFBTS/",
-    "data/ZTFBTS/",
-]
+        "/Users/pnr5sh/Documents/phd/maven/data/test/all",
+        "data/test/all",
+        "test/all",
+        "all",
+    ]
 data_dir = get_valid_dir(data_dirs)
 
+# data_dirs = [
+#     "ZTFBTS_spectra/",
+#     "data/ZTFBTS_spectra/",
+#     # "/n/home02/gemzhang/Storage/multimodal/ZTFBTS_spectra/",
+#     # "/n/home02/gemzhang/Storage/multimodal/ZTFBTS_spectra/",
+# ]
 data_dirs = [
-    "ZTFBTS_spectra/",
-    "data/ZTFBTS_spectra/",
-    # "/n/home02/gemzhang/Storage/multimodal/ZTFBTS_spectra/",
-    # "/n/home02/gemzhang/Storage/multimodal/ZTFBTS_spectra/",
-]
+        "/Users/pnr5sh/Documents/phd/maven/data/test/all_spectra",
+        "data/test/all_spectra",
+        "test/all_spectra",
+        "all_spectra",
+    ]
 spectra_dir = get_valid_dir(data_dirs)
 
 
@@ -155,7 +169,7 @@ spectra_dir = get_valid_dir(data_dirs)
 cpus_per_task = int(os.getenv("SLURM_CPUS_PER_TASK", 1))
 
 # Assuming you want to leave one CPU for overhead
-num_workers = max(1, cpus_per_task - 1)
+num_workers = 0 #max(1, cpus_per_task - 1)
 print(f"Using {num_workers} workers for data loading", flush=True)
 
 # Keeping track of all metrics
@@ -179,7 +193,7 @@ for output, label, id in zip(models, labels, ids):
     ) = output
 
     set_seed(cfg["seed"])
-
+    
     # Spectral data is cut to this length
     dataset_train, nband, filenames_read, _ = load_data(
         data_dir,
@@ -298,13 +312,23 @@ for output, label, id in zip(models, labels, ids):
         )
         embs_list_train = get_embs(model, train_loader_no_aug, combinations)
         # looping over different amount of classes to predict
-        for n_classes in ["five", "three"]:
+        for n_classes in ["two"]: #"five", "three", 
             # filter classes to three
             print(f"nclasses {n_classes}")
             if n_classes == "three":
                 subclasses = torch.tensor(
                     [1, 3, 4]
                 )  # Selecting subclasses 1,3 and 4 correspnding to 'SN II', 'SN Ia', 'SN Ibc'
+                embs_list, y_true_label, lc_data = filter_classes(
+                    embs_list, y_true_label, lc_data, subclasses
+                )
+                embs_list_train, y_true_train_label, _ = filter_classes(
+                    embs_list_train, y_true_train_label, None, subclasses
+                )
+            elif n_classes == "two":
+                subclasses = torch.tensor(
+                    [0, 1]
+                )
                 embs_list, y_true_label, lc_data = filter_classes(
                     embs_list, y_true_label, lc_data, subclasses
                 )
@@ -503,15 +527,20 @@ for output, label, id in zip(models, labels, ids):
                                 classification_metrics_list.append(metrics)
     print("===============================")
 
+# class_names = {
+#     0: ("SLSN-I", "blue"),
+#     1: ("SN II", "green"),
+#     2: ("SN IIn", "teal"),
+#     3: ("SN Ia", "purple"),
+#     4: ("SN Ibc", "orange"),
+# }
 class_names = {
-    0: ("SLSN-I", "blue"),
-    1: ("SN II", "green"),
-    2: ("SN IIn", "teal"),
-    3: ("SN Ia", "purple"),
-    4: ("SN Ibc", "orange"),
+    0: ("single-peak", "blue"),
+    1: ("multipeak", "green"),
 }
 
-os.makedirs("evaluation_metrics", exist_ok=True)
+
+os.makedirs("evaluation_metrics_2", exist_ok=True)
 
 
 # Convert metrics list to a DataFrame

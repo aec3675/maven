@@ -21,23 +21,22 @@ parameters:
   epochs:
     values: [1000]
   weight_decay:
-    values: [6.296250184870131e-05]
+    values: [6.296250184870130e-05]
   seed:
     values: [0]
   patience:    # Parameter for early stopping 
     values: [50] #100
 sweep:
-  id: 3ffp875n
-# Options are 'lightcurve' 'spectral' and 'host_galaxy' -- order does not matter 
+  id: is0ujs5y
 extra_args:
   pretrain_path: 
     models/clip_pretrain_noiseless/scarlet-sweep-1/epoch=337-step=5016934.ckpt
   freeze_backbone: false
   kfolds: 5
-  combinations: ['lightcurve', 'spectral'] #lightcurve
+  combinations: [lightcurve, spectral]     #lightcurve
   regression: false
   nruns: 5
   max_spectral_data_len: 220
   val_fraction: 0.2  # train test split
-  classification: False
+  classification: false
   spectral_rescalefactor: 1 # rescaling spectral values by a fixed amout to avoid floating point issues
