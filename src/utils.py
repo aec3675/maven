@@ -6,6 +6,8 @@ import torch
 import numpy as np
 from torch.utils.data import DataLoader
 from typing import Tuple, List, Dict, Any
+import matplotlib
+matplotlib.use("Agg")
 from matplotlib import pyplot as plt
 from ruamel.yaml import YAML
 from sklearn.linear_model import LinearRegression
