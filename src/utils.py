@@ -536,6 +536,27 @@ def get_linear_predictions(
 
     return predictions_tensor
 
+def get_majority_predictions(
+    X: torch.Tensor,
+    Y: torch.Tensor,
+    X_val: Optional[torch.Tensor] = None,
+    Y_val: Optional[torch.Tensor] = None,
+    # task: str = "regression",
+) -> torch.Tensor:
+    # Ensure Y is 2D (necessary for sklearn)
+    if len(Y.shape) == 1:
+        Y = Y[:, np.newaxis]
+
+    # Convert tensors to numpy
+    X = X.cpu().detach().numpy()
+    if X_val is not None:
+        X_val = X_val.cpu().detach().numpy()
+
+    print('Y shape', Y)
+    print('Yval shape', Y_val)
+    return
+    
+
 
 def get_knn_predictions(
     X: torch.Tensor,
@@ -1073,6 +1094,8 @@ def save_normalized_conf_matrices(
             cmap="Blues",
             xticklabels=[class_names[label][0] for label in sorted(class_names)],
             yticklabels=[class_names[label][0] for label in sorted(class_names)],
+            vmin=0,
+            vmax=1,
         )
         plt.title(f'Normalized Confusion Matrix: {row["Model"]}, {row["Combination"]}')
         plt.xlabel("Predicted Label")

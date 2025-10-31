@@ -343,7 +343,7 @@ class LightCurveImageCLIP(pl.LightningModule):
             elif self.n_classes == 3:
                 class_weights = torch.tensor([0.33, 0.06, 1.0]).to(x.device).float()
             elif self.n_classes == 2:
-                class_weights = torch.tensor([0.8, 0.2]).to(x.device).float()
+                class_weights = torch.tensor([0.2, 0.8]).to(x.device).float()
             else:
                 # if we can't figure out the classification don't reweight
                 class_weights = torch.ones(self.n_classes).to(x.device).float()
@@ -464,7 +464,7 @@ class LightCurveImageCLIP(pl.LightningModule):
             elif self.n_classes == 3:
                 class_weights = torch.tensor([0.33, 0.06, 1.0]).to(x.device).float()
             elif self.n_classes == 2:
-                class_weights = torch.tensor([0.8, 0.2]).to(x.device).float()
+                class_weights = torch.tensor([0.2, 0.8]).to(x.device).float()
             else:
                 # if we can't figure out the classification don't reweight
                 class_weights = torch.ones(self.n_classes).to(x.device).float()
@@ -972,7 +972,7 @@ class ClipMLP(pl.LightningModule):
             elif self.n_classes == 3:
                 class_weights = torch.tensor([0.33, 0.06, 1.0]).to(x.device).float()
             elif self.n_classes == 2:
-                class_weights = torch.tensor([0.8, 0.2]).to(x.device).float()
+                class_weights = torch.tensor([0.2, 0.8]).to(x.device).float()
             else:
                 # if we can't figure out the classification don't reweight
                 class_weights = torch.ones(self.n_classes).to(x.device).float()
@@ -1079,7 +1079,7 @@ class ClipMLP(pl.LightningModule):
             elif self.n_classes == 3:
                 class_weights = torch.tensor([0.33, 0.06, 1.0]).to(x.device).float()
             elif self.n_classes == 2:
-                class_weights = torch.tensor([0.8, 0.2]).to(x.device).float()
+                class_weights = torch.tensor([0.2, 1.0]).to(x.device).float()
             else:
                 # if we can't figure out the classification don't reweight
                 class_weights = torch.ones(self.n_classes).to(x.device).float()

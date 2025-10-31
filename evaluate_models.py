@@ -25,6 +25,7 @@ from src.utils import (
     get_class_dependent_predictions,
     generate_radar_plots,
     filter_classes,
+    get_majority_predictions,
 )
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -32,10 +33,13 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 # Load models
 set_seed(0)
 
-KNNparameters = [1,2,3,5,7,8,9]
+# KNNparameters = [1,2,3,5,7,8,9]
+KNNparameters = [1,3,5,7,9]
 
 directories = [
-    "models/multipeak-finetune",
+    # "models/multipeak-finetune",
+    # "models/multipeak-finetune-noweights",
+    "models/multipeak-finetune-weights0210",
     # "models/clip_finetune",
     # "models/clip_noiselesssimpretrain_clipreal",
     # "models/clip_noiselesssimpretrain_clipreal_flatz",
@@ -75,7 +79,9 @@ directories = [
     # "models/sp_reg",
 ]  # "ENDtoEND",
 names = [
-    "multipeak-finetune",
+    # "multipeak-finetune",
+    # "multipeak-finetune-noweights",
+    "multipeak-finetune-weights0210",
     # "clip-finetune",
     # "clip-noiselesssimpretrain-clipreal",
     # "clip-noiselesssimpretrain-clipreal-flatz",
@@ -193,7 +199,7 @@ for output, label, id in zip(models, labels, ids):
     ) = output
 
     set_seed(cfg["seed"])
-    
+
     # Spectral data is cut to this length
     dataset_train, nband, filenames_read, _ = load_data(
         data_dir,
@@ -250,7 +256,7 @@ for output, label, id in zip(models, labels, ids):
 
     model = model.to(device)
     model.eval()
-
+    #y_pred empty is regression is not True
     y_true, y_true_label, y_pred, lc_data = process_data_loader(
         val_loader_no_aug,
         regression,
@@ -315,17 +321,17 @@ for output, label, id in zip(models, labels, ids):
         for n_classes in ["two"]: #"five", "three", 
             # filter classes to three
             print(f"nclasses {n_classes}")
-            if n_classes == "three":
-                subclasses = torch.tensor(
-                    [1, 3, 4]
-                )  # Selecting subclasses 1,3 and 4 correspnding to 'SN II', 'SN Ia', 'SN Ibc'
-                embs_list, y_true_label, lc_data = filter_classes(
-                    embs_list, y_true_label, lc_data, subclasses
-                )
-                embs_list_train, y_true_train_label, _ = filter_classes(
-                    embs_list_train, y_true_train_label, None, subclasses
-                )
-            elif n_classes == "two":
+            # if n_classes == "three":
+            #     subclasses = torch.tensor(
+            #         [1, 3, 4]
+            #     )  # Selecting subclasses 1,3 and 4 correspnding to 'SN II', 'SN Ia', 'SN Ibc'
+            #     embs_list, y_true_label, lc_data = filter_classes(
+            #         embs_list, y_true_label, lc_data, subclasses
+            #     )
+            #     embs_list_train, y_true_train_label, _ = filter_classes(
+            #         embs_list_train, y_true_train_label, None, subclasses
+            #     )
+            if n_classes == "two":
                 subclasses = torch.tensor(
                     [0, 1]
                 )
@@ -407,7 +413,21 @@ for output, label, id in zip(models, labels, ids):
                         classification_metrics_list.append(metrics)
                         collect_classification_results.append(results)
                         
-                        for kneighbours in KNNparameters:
+                        #TODO: get a prediction of majority / most common 
+                        metrics, results = calculate_metrics(
+                                y_true,
+                                y_true_label,
+                                y_true_label,
+                                lc_data,
+                                label + f"+Majority+{n_classes}",
+                                combs[i],
+                                id=id,
+                                task=task,
+                            )
+                        classification_metrics_list.append(metrics)
+                        collect_classification_results.append(results)
+                        
+                        for kneighbours in KNNparameters: #TODO: make sure neighbors different when KNN even
                             y_pred_knn = get_knn_predictions(
                                 embs_list_train[i],
                                 y_true_train_label,
@@ -504,6 +524,21 @@ for output, label, id in zip(models, labels, ids):
                             )
                             classification_metrics_list.append(metrics)
                             collect_classification_results.append(results)
+
+                            #TODO: get prediction of majority / most common
+                            metrics, results = calculate_metrics(
+                                y_true,
+                                y_true_label,
+                                y_true_label,
+                                lc_data,
+                                label + f"+Majority+",
+                                combs[i] + " and " + combs[j],
+                                id=id,
+                                task=task,
+                            )
+                            classification_metrics_list.append(metrics)
+                            collect_classification_results.append(results)
+
                             for kneighbours in KNNparameters:
                                 y_pred_knn = get_knn_predictions(
                                     emb_train,
@@ -545,30 +580,31 @@ os.makedirs("evaluation_metrics_2", exist_ok=True)
 
 # Convert metrics list to a DataFrame
 if len(collect_classification_results) > 0:
-    print_metrics_in_latex(classification_metrics_list)
+    # print_metrics_in_latex(classification_metrics_list)
     # Save metric to file
-    with open("evaluation_metrics/classification_metrics_list.pkl", "wb") as file:
+    with open("evaluation_metrics_2/classification_metrics_list.pkl", "wb") as file:
         pickle.dump(classification_metrics_list, file)
-    with open("evaluation_metrics/collect_classification_results.pkl", "wb") as file:
+    with open("evaluation_metrics_2/collect_classification_results.pkl", "wb") as file:
         pickle.dump(collect_classification_results, file)
     merged_classification = mergekfold_results(collect_classification_results)
     save_normalized_conf_matrices(merged_classification, class_names, "confusion_plots")
 
-if len(collect_regression_results) > 0:
-    print_metrics_in_latex(regression_metrics_list)
-    with open("evaluation_metrics/regression_metrics_list.pkl", "wb") as file:
-        pickle.dump(regression_metrics_list, file)
-    with open("evaluation_metrics/collect_regression_results.pkl", "wb") as file:
-        pickle.dump(collect_regression_results, file)
-    merged_regression = mergekfold_results(collect_regression_results)
-    folder_name = "plots"
-    plot_pred_vs_true(merged_regression, "plots", class_names)
-    # Spiderplots for regression
-    spiderplot_data = get_class_dependent_predictions(merged_regression, class_names)
-    import pandas as pd
+# NOTE: ignoring for now
+# if len(collect_regression_results) > 0:
+#     # print_metrics_in_latex(regression_metrics_list)
+#     with open("evaluation_metrics/regression_metrics_list.pkl", "wb") as file:
+#         pickle.dump(regression_metrics_list, file)
+#     with open("evaluation_metrics/collect_regression_results.pkl", "wb") as file:
+#         pickle.dump(collect_regression_results, file)
+#     merged_regression = mergekfold_results(collect_regression_results)
+#     folder_name = "plots"
+#     plot_pred_vs_true(merged_regression, "plots", class_names)
+#     # Spiderplots for regression
+#     spiderplot_data = get_class_dependent_predictions(merged_regression, class_names)
+#     import pandas as pd
 
-    df = pd.DataFrame(spiderplot_data)
-    output_dir = "radar_plots"
-    range_dict = {"L1": [0, 0.2], "L2": [0, 0.2], "R2": [-1, 1], "OLF": None}
+#     df = pd.DataFrame(spiderplot_data)
+#     output_dir = "radar_plots"
+#     range_dict = {"L1": [0, 0.2], "L2": [0, 0.2], "R2": [-1, 1], "OLF": None}
 
-    generate_radar_plots(df, output_dir, range_dict)
+#     generate_radar_plots(df, output_dir, range_dict)
