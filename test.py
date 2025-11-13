@@ -129,8 +129,10 @@ def train_sweep(config=None):
         }
 
         clip_model, _, _, _, _, cfg_pre, _ = initialize_model(
-            pretrain_path, optimizer_kwargs=optimizer_kwargs, combinations=combinations
-        )
+            pretrain_path, 
+            optimizer_kwargs=optimizer_kwargs, 
+            combinations=combinations,
+        ) #classification=True, clip_model.classification=False 
 
         # dump config
         config_dict = {k: v for k, v in cfg.items()}
@@ -154,7 +156,14 @@ def train_sweep(config=None):
                 n_classes=n_classes,
             )
         else:
-            model = clip_model
+            # model = clip_model #model.classification is False here
+            model = LightCurveImageCLIP(
+                optimizer_kwargs=optimizer_kwargs, 
+                combinations=combinations,
+                regression=regression,
+                classification=classification,
+                n_classes=n_classes,
+            ) # model.classification is True, ends with 2 out_variables in model architecture 
 
         # Custom call back for tracking loss
         loss_tracking_callback = LossTrackingCallback()

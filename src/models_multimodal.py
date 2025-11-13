@@ -159,6 +159,7 @@ class LightCurveImageCLIP(pl.LightningModule):
         self.classification = classification
         if self.classification:
             self.n_classes = n_classes
+        # print('LIGHTCURVE CLIP INIT CLASS', classification)
 
         # Parameters
         self.logit_scale = nn.Parameter(
@@ -353,7 +354,7 @@ class LightCurveImageCLIP(pl.LightningModule):
                 # x.squeeze(), classification.long()
                 x.squeeze(), multipeak.long()
             )
-
+            # print('CROSS ENTROPY CHECK 1', x)
             self.y_pred.append(x)
             # self.y_true.append(classification)
             self.y_true.append(multipeak)
@@ -474,7 +475,7 @@ class LightCurveImageCLIP(pl.LightningModule):
                 # x.squeeze(), classification.long()
                 x.squeeze(), multipeak.long()
             )
-
+            # print('CROSS ENTROPY CHECK 2', x)
             self.y_pred_val.append(x)
             # self.y_true_val.append(classification)
             self.y_true_val.append(multipeak)

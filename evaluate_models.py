@@ -1,6 +1,7 @@
 import os
 import torch
 import pickle
+import numpy as np
 from src.dataloader import (
     load_data,
     NoisyDataLoader,
@@ -37,9 +38,9 @@ set_seed(0)
 KNNparameters = [1,3,5,7,9]
 
 directories = [
-    # "models/multipeak-finetune",
-    # "models/multipeak-finetune-noweights",
-    "models/multipeak-finetune-weights0210",
+    # "models/multipeak-finetune-cFrF",
+    # "models/multipeak-finetune-noweights-cFrF",
+    "models/multipeak-finetune-weights0210-cTrF",
     # "models/clip_finetune",
     # "models/clip_noiselesssimpretrain_clipreal",
     # "models/clip_noiselesssimpretrain_clipreal_flatz",
@@ -79,9 +80,9 @@ directories = [
     # "models/sp_reg",
 ]  # "ENDtoEND",
 names = [
-    # "multipeak-finetune",
-    # "multipeak-finetune-noweights",
-    "multipeak-finetune-weights0210",
+    # "multipeak-finetune-cFrF",
+    # "multipeak-finetune-noweights-cFrF",
+    "multipeak-finetune-weights0210-cTrF",
     # "clip-finetune",
     # "clip-noiselesssimpretrain-clipreal",
     # "clip-noiselesssimpretrain-clipreal-flatz",
@@ -135,6 +136,7 @@ for id, (directory, label) in enumerate(zip(directories, names)):
 
 for i, path in enumerate(paths):
     print(f"loading {labels[i]}")
+    print(path)
     models.append(load_model(path))
 
 print("finished loading models")
@@ -313,6 +315,19 @@ for output, label, id in zip(models, labels, ids):
         classification_metrics_list.append(metrics)
         collect_classification_results.append(results)
     else:
+        metrics, results = calculate_metrics(
+            y_true,
+            y_true_label,
+            y_pred,
+            lc_data,
+            label,
+            format_combinations(cfg_extra_args["combinations"]),
+            id=id,
+            task="classification",
+        )
+        classification_metrics_list.append(metrics)
+        collect_classification_results.append(results)
+        """
         embs_list, combs = get_embs(
             model, val_loader_no_aug, cfg_extra_args["combinations"], ret_combs=True
         )
@@ -341,6 +356,7 @@ for output, label, id in zip(models, labels, ids):
                 embs_list_train, y_true_train_label, _ = filter_classes(
                     embs_list_train, y_true_train_label, None, subclasses
                 )
+            # print('LC DATA', lc_data.keys(), len(lc_data['mask_lc'].values))
             # loop over different combinations of modalities
             for i in range(len(embs_list)):
                 # print(f"Train set linear regression R2 value for {combs[i]}: {get_linearR2(embs_list_train[i], y_true_train)}")
@@ -414,18 +430,18 @@ for output, label, id in zip(models, labels, ids):
                         collect_classification_results.append(results)
                         
                         #TODO: get a prediction of majority / most common 
-                        metrics, results = calculate_metrics(
-                                y_true,
-                                y_true_label,
-                                y_true_label,
-                                lc_data,
-                                label + f"+Majority+{n_classes}",
-                                combs[i],
-                                id=id,
-                                task=task,
-                            )
-                        classification_metrics_list.append(metrics)
-                        collect_classification_results.append(results)
+                        # metrics, results = calculate_metrics(
+                        #         y_true,
+                        #         y_true_label,
+                        #         y_true_label,
+                        #         lc_data,
+                        #         label + f"+Majority+{n_classes}",
+                        #         combs[i],
+                        #         id=id,
+                        #         task=task,
+                        #     )
+                        # classification_metrics_list.append(metrics)
+                        # collect_classification_results.append(results)
                         
                         for kneighbours in KNNparameters: #TODO: make sure neighbors different when KNN even
                             y_pred_knn = get_knn_predictions(
@@ -561,7 +577,9 @@ for output, label, id in zip(models, labels, ids):
                                 collect_classification_results.append(results)
                                 classification_metrics_list.append(metrics)
     print("===============================")
+    """
 
+exit()
 # class_names = {
 #     0: ("SLSN-I", "blue"),
 #     1: ("SN II", "green"),
