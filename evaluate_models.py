@@ -26,7 +26,7 @@ from src.utils import (
     get_class_dependent_predictions,
     generate_radar_plots,
     filter_classes,
-    get_majority_predictions,
+    get_mlp_predictions,
 )
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -40,86 +40,16 @@ KNNparameters = [1,3,5,7,9]
 directories = [
     # "models/multipeak-finetune-cFrF",
     # "models/multipeak-finetune-noweights-cFrF",
-    "models/multipeak-finetune-weights0210-cTrF",
-    # "models/clip_finetune",
-    # "models/clip_noiselesssimpretrain_clipreal",
-    # "models/clip_noiselesssimpretrain_clipreal_flatz",
-    # "models/clip_noiselesssimpretrain_clipreal_lc_meta_flatz",
-    # "models/clip_noisysimpretrain_clipreal",
-    # "models/clip_noisysimpretrain_clipreal_flatz",
-    # #"models/clip_pretrain_noiseless",
-    # #"models/clip_pretrain_noiseless_flatz",
-    # #"models/clip_pretrain_noiseless_lc_spectral_meta_flatz",
-    # #"models/clip_pretrain_noisy",
-    # #"models/clip_pretrain_noisy_flatz",
-    # "models/clip_real",
-    # "models/clip_real_lc_meta",
-    # "models/clip_real_lc_spectral_meta",
-    # "models/lc_3way_f1",
-    # "models/lc_3way_f1_masked_noiseless_f15_backbonefrozen",
-    # "models/lc_3way_f1_masked_noiseless_f15_backbonenotfrozen",
-    # "models/lc_3way_f1_masked_noiseless_f25_backbonefrozen",
-    # "models/lc_3way_f1_masked_noiseless_f25_backbonenotfrozen",
-    # "models/lc_5way_f1",
-    # "models/lc_5way_f1_masked_noiseless_f15_backbonefrozen",
-    # "models/lc_5way_f1_masked_noiseless_f15_backbonenotfrozen",
-    # "models/lc_5way_f1_masked_noiseless_f25_backbonefrozen",
-    # "models/lc_5way_f1_masked_noiseless_f25_backbonenotfrozen",
-    # "models/lc_reg",
-    # "models/lc_reg_masked_noiseless_f15_backbonefrozen",
-    # "models/lc_reg_masked_noiseless_f15_backbonenotfrozen",
-    # "models/lc_reg_masked_noiseless_f25_backbonefrozen",
-    # "models/lc_reg_masked_noiseless_f25_backbonenotfrozen",
-    # "models/masked_pretraining_noiseless_backbonefrozen",
-    # "models/masked_pretraining_noiseless_backbonenotfrozen",
-    # "models/masked_pretraining_noiseless_f15",
-    # "models/masked_pretraining_noiseless_f25",
-    # "models/masked_pretraining_noiseless_f45",
-    # "models/sp_3way_f1",
-    # "models/sp_5way_f1",
-    # "models/sp_reg",
-]  # "ENDtoEND",
+    # "models/multipeak-finetune-weights0210-cTrF",
+    # "models/multipeak-finetune-weights0208-cTrF-newinit/", 
+    "models/clip_finetune",                             #<-maven results
+]  
 names = [
     # "multipeak-finetune-cFrF",
     # "multipeak-finetune-noweights-cFrF",
-    "multipeak-finetune-weights0210-cTrF",
-    # "clip-finetune",
-    # "clip-noiselesssimpretrain-clipreal",
-    # "clip-noiselesssimpretrain-clipreal-flatz",
-    # "clip-noiselesssimpretrain-clipreal-lc-meta-flatz",
-    # "clip-noisysimpretrain-clipreal",
-    # "clip-noisysimpretrain-clipreal-flatz",
-    # #"clip-pretrain-noiseless",
-    # #"clip-pretrain-noiseless-flatz",
-    # #"clip-pretrain-noiseless-lc-spectral-meta-flatz",
-    # #"clip-pretrain-noisy",
-    # #"clip-pretrain-noisy-flatz",
-    # "clip-real",
-    # "clip-real-lc-meta",
-    # "clip-real-lc-spectral-meta",
-    # "lc-3way-f1",
-    # "lc-3way-f1-masked-noiseless-f15-backbonefrozen",
-    # "lc-3way-f1-masked-noiseless-f15-backbonenotfrozen",
-    # "lc-3way-f1-masked-noiseless-f25-backbonefrozen",
-    # "lc-3way-f1-masked-noiseless-f25-backbonenotfrozen",
-    # "lc-5way-f1",
-    # "lc-5way-f1-masked-noiseless-f15-backbonefrozen",
-    # "lc-5way-f1-masked-noiseless-f15-backbonenotfrozen",
-    # "lc-5way-f1-masked-noiseless-f25-backbonefrozen",
-    # "lc-5way-f1-masked-noiseless-f25-backbonenotfrozen",
-    # "lc-reg",
-    # "lc-reg-masked-noiseless-f15-backbonefrozen",
-    # "lc-reg-masked-noiseless-f15-backbonenotfrozen",
-    # "lc-reg-masked-noiseless-f25-backbonefrozen",
-    # "lc-reg-masked-noiseless-f25-backbonenotfrozen",
-    # "masked-pretraining-noiseless-backbonefrozen",
-    # "masked-pretraining-noiseless-backbonenotfrozen",
-    # "masked-pretraining-noiseless-f15",
-    # "masked-pretraining-noiseless-f25",
-    # "masked-pretraining-noiseless-f45",
-    # "sp-3way-f1",
-    # "sp-5way-f1",
-    # "sp-reg",
+    # "multipeak-finetune-weights0210-cTrF",
+    # "multipeak-finetune-weights0208-cTrF-newinit/",
+    "clip_finetune",                                    #<-maven results
 ]
 models = []
 
@@ -133,6 +63,7 @@ for id, (directory, label) in enumerate(zip(directories, names)):
     ids.extend(id)
     labels.extend(name)
 
+print(paths)
 
 for i, path in enumerate(paths):
     print(f"loading {labels[i]}")
@@ -144,32 +75,36 @@ print("finished loading models")
 
 # Data preprocessing
 
-# data_dirs = [
-#     # "/home/thelfer1/scr4_tedwar42/thelfer1/ZTFBTS/",
-#     "ZTFBTS/",
-#     "/ocean/projects/phy230064p/shared/ZTFBTS/",
-#     "data/ZTFBTS/",
-# ]
+#Maven dirs
 data_dirs = [
-        "/Users/pnr5sh/Documents/phd/maven/data/test/all",
-        "data/test/all",
-        "test/all",
-        "all",
-    ]
+    # "/home/thelfer1/scr4_tedwar42/thelfer1/ZTFBTS/",
+    "ZTFBTS/",
+    "/ocean/projects/phy230064p/shared/ZTFBTS/",
+    "data/ZTFBTS/",
+]
+#Our dirs
+# data_dirs = [
+#         "/Users/pnr5sh/Documents/phd/maven/data/test/all",
+#         "data/test/all",
+#         "test/all",
+#         "all",
+#     ]
 data_dir = get_valid_dir(data_dirs)
 
-# data_dirs = [
-#     "ZTFBTS_spectra/",
-#     "data/ZTFBTS_spectra/",
-#     # "/n/home02/gemzhang/Storage/multimodal/ZTFBTS_spectra/",
-#     # "/n/home02/gemzhang/Storage/multimodal/ZTFBTS_spectra/",
-# ]
+#Maven dirs
 data_dirs = [
-        "/Users/pnr5sh/Documents/phd/maven/data/test/all_spectra",
-        "data/test/all_spectra",
-        "test/all_spectra",
-        "all_spectra",
-    ]
+    "ZTFBTS_spectra/",
+    "data/ZTFBTS_spectra/",
+    # "/n/home02/gemzhang/Storage/multimodal/ZTFBTS_spectra/",
+    # "/n/home02/gemzhang/Storage/multimodal/ZTFBTS_spectra/",
+]
+#Our dira
+# data_dirs = [
+#         "/Users/pnr5sh/Documents/phd/maven/data/test/all_spectra",
+#         "data/test/all_spectra",
+#         "test/all_spectra",
+#         "all_spectra",
+#     ]
 spectra_dir = get_valid_dir(data_dirs)
 
 
@@ -245,6 +180,8 @@ for output, label, id in zip(models, labels, ids):
         combinations=cfg_extra_args["combinations"],
     )
 
+    print('TRAIN', train_loader_no_aug.dataset)
+
     val_loader_no_aug = NoisyDataLoader(
         dataset_val,
         batch_size=cfg["batchsize"],
@@ -314,38 +251,23 @@ for output, label, id in zip(models, labels, ids):
         )
         classification_metrics_list.append(metrics)
         collect_classification_results.append(results)
-    else:
-        metrics, results = calculate_metrics(
-            y_true,
-            y_true_label,
-            y_pred,
-            lc_data,
-            label,
-            format_combinations(cfg_extra_args["combinations"]),
-            id=id,
-            task="classification",
-        )
-        classification_metrics_list.append(metrics)
-        collect_classification_results.append(results)
-        """
+    else:        
         embs_list, combs = get_embs(
             model, val_loader_no_aug, cfg_extra_args["combinations"], ret_combs=True
         )
         embs_list_train = get_embs(model, train_loader_no_aug, combinations)
         # looping over different amount of classes to predict
-        for n_classes in ["two"]: #"five", "three", 
-            # filter classes to three
-            print(f"nclasses {n_classes}")
-            # if n_classes == "three":
-            #     subclasses = torch.tensor(
-            #         [1, 3, 4]
-            #     )  # Selecting subclasses 1,3 and 4 correspnding to 'SN II', 'SN Ia', 'SN Ibc'
-            #     embs_list, y_true_label, lc_data = filter_classes(
-            #         embs_list, y_true_label, lc_data, subclasses
-            #     )
-            #     embs_list_train, y_true_train_label, _ = filter_classes(
-            #         embs_list_train, y_true_train_label, None, subclasses
-            #     )
+        for n_classes in ["three", "two"]: #"five", "three", 
+            if n_classes == "three":
+                subclasses = torch.tensor(
+                    [1, 3, 4]
+                )  # Selecting subclasses 1,3 and 4 correspnding to 'SN II', 'SN Ia', 'SN Ibc'
+                embs_list, y_true_label, lc_data = filter_classes(
+                    embs_list, y_true_label, lc_data, subclasses
+                )
+                embs_list_train, y_true_train_label, _ = filter_classes(
+                    embs_list_train, y_true_train_label, None, subclasses
+                )
             if n_classes == "two":
                 subclasses = torch.tensor(
                     [0, 1]
@@ -356,7 +278,6 @@ for output, label, id in zip(models, labels, ids):
                 embs_list_train, y_true_train_label, _ = filter_classes(
                     embs_list_train, y_true_train_label, None, subclasses
                 )
-            # print('LC DATA', lc_data.keys(), len(lc_data['mask_lc'].values))
             # loop over different combinations of modalities
             for i in range(len(embs_list)):
                 # print(f"Train set linear regression R2 value for {combs[i]}: {get_linearR2(embs_list_train[i], y_true_train)}")
@@ -429,17 +350,24 @@ for output, label, id in zip(models, labels, ids):
                         classification_metrics_list.append(metrics)
                         collect_classification_results.append(results)
                         
-                        #TODO: get a prediction of majority / most common 
+                        # #TODO: get a MLP prediction 
+                        # y_pred_mlp = get_mlp_predictions(
+                        #     embs_list_train[i],
+                        #     y_true_train_label,
+                        #     embs_list[i],
+                        #     y_true_label,
+                        #     task=task,
+                        # )
                         # metrics, results = calculate_metrics(
-                        #         y_true,
-                        #         y_true_label,
-                        #         y_true_label,
-                        #         lc_data,
-                        #         label + f"+Majority+{n_classes}",
-                        #         combs[i],
-                        #         id=id,
-                        #         task=task,
-                        #     )
+                        #     y_true,
+                        #     y_true_label,
+                        #     y_pred_mlp,
+                        #     lc_data,
+                        #     label + f"+MLP+{n_classes}",
+                        #     combs[i],
+                        #     id=id,
+                        #     task=task,
+                        # )
                         # classification_metrics_list.append(metrics)
                         # collect_classification_results.append(results)
                         
@@ -541,19 +469,27 @@ for output, label, id in zip(models, labels, ids):
                             classification_metrics_list.append(metrics)
                             collect_classification_results.append(results)
 
-                            #TODO: get prediction of majority / most common
-                            metrics, results = calculate_metrics(
-                                y_true,
-                                y_true_label,
-                                y_true_label,
-                                lc_data,
-                                label + f"+Majority+",
-                                combs[i] + " and " + combs[j],
-                                id=id,
-                                task=task,
-                            )
-                            classification_metrics_list.append(metrics)
-                            collect_classification_results.append(results)
+                            #TODO: get MLP predictions
+                            # y_pred_mlp = get_linear_predictions(
+                            #     emb_train,
+                            #     y_true_train_label,
+                            #     emb_concat,
+                            #     y_true_label,
+                            #     task=task,
+                            # )
+
+                            # metrics, results = calculate_metrics(
+                            #     y_true,
+                            #     y_true_label,
+                            #     y_pred_mlp,
+                            #     lc_data,
+                            #     label + f"+MLP+{n_classes}",
+                            #     combs[i] + " and " + combs[j],
+                            #     id=id,
+                            #     task=task,
+                            # )
+                            # classification_metrics_list.append(metrics)
+                            # collect_classification_results.append(results)
 
                             for kneighbours in KNNparameters:
                                 y_pred_knn = get_knn_predictions(
@@ -577,20 +513,20 @@ for output, label, id in zip(models, labels, ids):
                                 collect_classification_results.append(results)
                                 classification_metrics_list.append(metrics)
     print("===============================")
-    """
+    
 
 exit()
-# class_names = {
-#     0: ("SLSN-I", "blue"),
-#     1: ("SN II", "green"),
-#     2: ("SN IIn", "teal"),
-#     3: ("SN Ia", "purple"),
-#     4: ("SN Ibc", "orange"),
-# }
 class_names = {
-    0: ("single-peak", "blue"),
-    1: ("multipeak", "green"),
+    0: ("SLSN-I", "blue"),
+    1: ("SN II", "green"),
+    2: ("SN IIn", "teal"),
+    3: ("SN Ia", "purple"),
+    4: ("SN Ibc", "orange"),
 }
+# class_names = {
+#     0: ("single-peak", "blue"),
+#     1: ("multipeak", "green"),
+# }
 
 
 os.makedirs("evaluation_metrics_2", exist_ok=True)
