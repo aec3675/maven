@@ -39,17 +39,19 @@ KNNparameters = [1,3,5,7,9]
 
 directories = [
     # "models/multipeak-finetune-cFrF",
-    # "models/multipeak-finetune-noweights-cFrF",
+    # "models/multipeak-finetune-noweights-cFrF",           #<-best, non-picked kfold results
     # "models/multipeak-finetune-weights0210-cTrF",
     # "models/multipeak-finetune-weights0208-cTrF-newinit/", 
-    "models/clip_finetune",                             #<-maven results
+    "models/multipeak-finetune-cFrF-picked-kfolds",
+    # "models/clip_finetune",                              #<-maven results
 ]  
 names = [
     # "multipeak-finetune-cFrF",
-    # "multipeak-finetune-noweights-cFrF",
+    # "multipeak-finetune-noweights-cFrF",                #<-best, non-picked kfold results
     # "multipeak-finetune-weights0210-cTrF",
     # "multipeak-finetune-weights0208-cTrF-newinit/",
-    "clip_finetune",                                    #<-maven results
+    "multipeak-finetune-cFrF-picked-kfolds"
+    # "clip_finetune",                                    #<-maven results
 ]
 models = []
 
@@ -63,11 +65,11 @@ for id, (directory, label) in enumerate(zip(directories, names)):
     ids.extend(id)
     labels.extend(name)
 
-print(paths)
+# print(paths)
 
 for i, path in enumerate(paths):
     print(f"loading {labels[i]}")
-    print(path)
+    # print(path)
     models.append(load_model(path))
 
 print("finished loading models")
@@ -76,35 +78,35 @@ print("finished loading models")
 # Data preprocessing
 
 #Maven dirs
-data_dirs = [
-    # "/home/thelfer1/scr4_tedwar42/thelfer1/ZTFBTS/",
-    "ZTFBTS/",
-    "/ocean/projects/phy230064p/shared/ZTFBTS/",
-    "data/ZTFBTS/",
-]
-#Our dirs
 # data_dirs = [
-#         "/Users/pnr5sh/Documents/phd/maven/data/test/all",
-#         "data/test/all",
-#         "test/all",
-#         "all",
-#     ]
+#     # "/home/thelfer1/scr4_tedwar42/thelfer1/ZTFBTS/",
+#     "ZTFBTS/",
+#     "/ocean/projects/phy230064p/shared/ZTFBTS/",
+#     "data/ZTFBTS/",
+# ]
+#Our dirs
+data_dirs = [
+        "/Users/pnr5sh/Documents/phd/maven/data/test/all",
+        "data/test/all",
+        "test/all",
+        "all",
+    ]
 data_dir = get_valid_dir(data_dirs)
 
-#Maven dirs
-data_dirs = [
-    "ZTFBTS_spectra/",
-    "data/ZTFBTS_spectra/",
-    # "/n/home02/gemzhang/Storage/multimodal/ZTFBTS_spectra/",
-    # "/n/home02/gemzhang/Storage/multimodal/ZTFBTS_spectra/",
-]
-#Our dira
+# #Maven dirs
 # data_dirs = [
-#         "/Users/pnr5sh/Documents/phd/maven/data/test/all_spectra",
-#         "data/test/all_spectra",
-#         "test/all_spectra",
-#         "all_spectra",
-#     ]
+#     "ZTFBTS_spectra/",
+#     "data/ZTFBTS_spectra/",
+#     # "/n/home02/gemzhang/Storage/multimodal/ZTFBTS_spectra/",
+#     # "/n/home02/gemzhang/Storage/multimodal/ZTFBTS_spectra/",
+# ]
+# Our dirs
+data_dirs = [
+        "/Users/pnr5sh/Documents/phd/maven/data/test/all_spectra",
+        "data/test/all_spectra",
+        "test/all_spectra",
+        "all_spectra",
+    ]
 spectra_dir = get_valid_dir(data_dirs)
 
 
@@ -121,7 +123,7 @@ classification_metrics_list = []
 collect_classification_results = []
 collect_regression_results = []
 
-
+kfold=0
 for output, label, id in zip(models, labels, ids):
     (
         model,
@@ -137,6 +139,8 @@ for output, label, id in zip(models, labels, ids):
 
     set_seed(cfg["seed"])
 
+    print('n_classes', n_classes) # must be 2 for our data, 5 for maven data
+
     # Spectral data is cut to this length
     dataset_train, nband, filenames_read, _ = load_data(
         data_dir,
@@ -146,6 +150,8 @@ for output, label, id in zip(models, labels, ids):
         spectral_rescalefactor=cfg_extra_args["spectral_rescalefactor"],
         filenames=train_filenames,
         n_classes=n_classes,
+        handpicked_folds=cfg_extra_args["handpicked_folds"],
+        handpicked_folds_dictpath=cfg_extra_args["handpicked_folds_dictpath"],
     )
 
     # Check that the filenames read are a subset of the training filenames from the already trained models
@@ -159,7 +165,11 @@ for output, label, id in zip(models, labels, ids):
         spectral_rescalefactor=cfg_extra_args["spectral_rescalefactor"],
         filenames=val_filenames,
         n_classes=n_classes,
+        handpicked_folds=cfg_extra_args["handpicked_folds"],
+        handpicked_folds_dictpath=cfg_extra_args["handpicked_folds_dictpath"],
     )
+    
+    # quit()
 
     # Check that the filenames read are a subset of the training filenames from the already trained models
     assert is_subset(filenames_read, val_filenames)
@@ -180,8 +190,6 @@ for output, label, id in zip(models, labels, ids):
         combinations=cfg_extra_args["combinations"],
     )
 
-    print('TRAIN', train_loader_no_aug.dataset)
-
     val_loader_no_aug = NoisyDataLoader(
         dataset_val,
         batch_size=cfg["batchsize"],
@@ -195,7 +203,8 @@ for output, label, id in zip(models, labels, ids):
 
     model = model.to(device)
     model.eval()
-    #y_pred empty is regression is not True
+    
+    #y_pred empty if regression is not True
     y_true, y_true_label, y_pred, lc_data = process_data_loader(
         val_loader_no_aug,
         regression,
@@ -257,7 +266,7 @@ for output, label, id in zip(models, labels, ids):
         )
         embs_list_train = get_embs(model, train_loader_no_aug, combinations)
         # looping over different amount of classes to predict
-        for n_classes in ["three", "two"]: #"five", "three", 
+        for n_classes in ["two"]: #"five", "three",  "two"
             if n_classes == "three":
                 subclasses = torch.tensor(
                     [1, 3, 4]
@@ -270,7 +279,7 @@ for output, label, id in zip(models, labels, ids):
                 )
             if n_classes == "two":
                 subclasses = torch.tensor(
-                    [0, 1]
+                    [0,1] #NOTE: change back when multipeak [0, 1]
                 )
                 embs_list, y_true_label, lc_data = filter_classes(
                     embs_list, y_true_label, lc_data, subclasses
@@ -350,26 +359,29 @@ for output, label, id in zip(models, labels, ids):
                         classification_metrics_list.append(metrics)
                         collect_classification_results.append(results)
                         
-                        # #TODO: get a MLP prediction 
-                        # y_pred_mlp = get_mlp_predictions(
-                        #     embs_list_train[i],
-                        #     y_true_train_label,
-                        #     embs_list[i],
-                        #     y_true_label,
-                        #     task=task,
-                        # )
-                        # metrics, results = calculate_metrics(
-                        #     y_true,
-                        #     y_true_label,
-                        #     y_pred_mlp,
-                        #     lc_data,
-                        #     label + f"+MLP+{n_classes}",
-                        #     combs[i],
-                        #     id=id,
-                        #     task=task,
-                        # )
-                        # classification_metrics_list.append(metrics)
-                        # collect_classification_results.append(results)
+                        y_pred_mlp = get_mlp_predictions(
+                            embs_list_train[i],
+                            y_true_train_label,
+                            embs_list[i],
+                            y_true_label,
+                            task=task,
+                            save_model=True,
+                            save_model_path=f"models/mlp-states/{label}+MLP+{n_classes}_{combs[i]}_kfold{kfold}",
+                            load_model=False,
+                            load_model_path='',
+                        )
+                        metrics, results = calculate_metrics(
+                            y_true,
+                            y_true_label,
+                            y_pred_mlp,
+                            lc_data,
+                            label + f"+MLP+{n_classes}",
+                            combs[i],
+                            id=id,
+                            task=task,
+                        )
+                        classification_metrics_list.append(metrics)
+                        collect_classification_results.append(results)
                         
                         for kneighbours in KNNparameters: #TODO: make sure neighbors different when KNN even
                             y_pred_knn = get_knn_predictions(
@@ -469,27 +481,30 @@ for output, label, id in zip(models, labels, ids):
                             classification_metrics_list.append(metrics)
                             collect_classification_results.append(results)
 
-                            #TODO: get MLP predictions
-                            # y_pred_mlp = get_linear_predictions(
-                            #     emb_train,
-                            #     y_true_train_label,
-                            #     emb_concat,
-                            #     y_true_label,
-                            #     task=task,
-                            # )
+                            y_pred_mlp = get_mlp_predictions(
+                                emb_train,
+                                y_true_train_label,
+                                emb_concat,
+                                y_true_label,
+                                task=task,
+                                save_model=True,
+                                save_model_path=f"models/mlp-states/{label}+MLP+{n_classes}_{combs[i]}and{combs[j]}_kfold{kfold}",
+                                load_model=False,
+                                load_model_path='',
+                            )
 
-                            # metrics, results = calculate_metrics(
-                            #     y_true,
-                            #     y_true_label,
-                            #     y_pred_mlp,
-                            #     lc_data,
-                            #     label + f"+MLP+{n_classes}",
-                            #     combs[i] + " and " + combs[j],
-                            #     id=id,
-                            #     task=task,
-                            # )
-                            # classification_metrics_list.append(metrics)
-                            # collect_classification_results.append(results)
+                            metrics, results = calculate_metrics(
+                                y_true,
+                                y_true_label,
+                                y_pred_mlp,
+                                lc_data,
+                                label + f"+MLP+{n_classes}",
+                                combs[i] + " and " + combs[j],
+                                id=id,
+                                task=task,
+                            )
+                            classification_metrics_list.append(metrics)
+                            collect_classification_results.append(results)
 
                             for kneighbours in KNNparameters:
                                 y_pred_knn = get_knn_predictions(
@@ -512,21 +527,32 @@ for output, label, id in zip(models, labels, ids):
                                 )
                                 collect_classification_results.append(results)
                                 classification_metrics_list.append(metrics)
+    kfold+=1
     print("===============================")
-    
+# if n_classes=="five":
+#     class_names = {
+#         0: ("SLSN-I", "blue"),
+#         1: ("SN II", "green"),
+#         2: ("SN IIn", "teal"),
+#         3: ("SN Ia", "purple"),
+#         4: ("SN Ibc", "orange"),
+#     }
+# elif n_classes=="three":
+#     class_names = {
+#             0: ("SN II", "green"),
+#             1: ("SN Ia", "purple"),
+#             2: ("SN Ibc", "orange"),
+#         }
+# elif n_classes=="two":
+#     class_names = {
+#             0: ("SN II", "green"),
+#             1: ("SN Ia", "purple"),
+#         }
 
-exit()
 class_names = {
-    0: ("SLSN-I", "blue"),
-    1: ("SN II", "green"),
-    2: ("SN IIn", "teal"),
-    3: ("SN Ia", "purple"),
-    4: ("SN Ibc", "orange"),
+    0: ("single-peak", "blue"),
+    1: ("multipeak", "green"),
 }
-# class_names = {
-#     0: ("single-peak", "blue"),
-#     1: ("multipeak", "green"),
-# }
 
 
 os.makedirs("evaluation_metrics_2", exist_ok=True)
@@ -536,12 +562,12 @@ os.makedirs("evaluation_metrics_2", exist_ok=True)
 if len(collect_classification_results) > 0:
     # print_metrics_in_latex(classification_metrics_list)
     # Save metric to file
-    with open("evaluation_metrics_2/classification_metrics_list.pkl", "wb") as file:
+    with open("evaluation_metrics_2/classification_metrics_list_handpicked_kfold.pkl", "wb") as file:
         pickle.dump(classification_metrics_list, file)
-    with open("evaluation_metrics_2/collect_classification_results.pkl", "wb") as file:
+    with open("evaluation_metrics_2/collect_classification_results_handpicked_kfold.pkl", "wb") as file:
         pickle.dump(collect_classification_results, file)
     merged_classification = mergekfold_results(collect_classification_results)
-    save_normalized_conf_matrices(merged_classification, class_names, "confusion_plots")
+    save_normalized_conf_matrices(merged_classification, class_names, output_dir="handpicked-kfold-results") #confusion_plots
 
 # NOTE: ignoring for now
 # if len(collect_regression_results) > 0:
