@@ -20,11 +20,13 @@ from sklearn.metrics import (
     recall_score,
     balanced_accuracy_score,
 )
+from sklearn.neural_network import MLPClassifier, MLPRegressor
 from torch.nn import Module
 import pandas as pd
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
 import matplotlib.ticker as ticker
+import pickle
 
 
 def filter_files(filenames_avail, filenames_to_filter, data_to_filter=None):
@@ -536,25 +538,62 @@ def get_linear_predictions(
 
     return predictions_tensor
 
-def get_majority_predictions(
+def get_mlp_predictions(
     X: torch.Tensor,
     Y: torch.Tensor,
     X_val: Optional[torch.Tensor] = None,
     Y_val: Optional[torch.Tensor] = None,
-    # task: str = "regression",
+    task: str = "regression",
+    save_model: Optional[bool] = False,
+    save_model_path: Optional[str] = "models/",
+    load_model: Optional[bool] = False,
+    load_model_path: Optional[str] = "models/",
 ) -> torch.Tensor:
-    # Ensure Y is 2D (necessary for sklearn)
-    if len(Y.shape) == 1:
-        Y = Y[:, np.newaxis]
+    if not load_model: # train the MLP
+        # Ensure Y is 2D (necessary for sklearn)
+        if len(Y.shape) == 1:
+            Y = Y[:, np.newaxis]
 
-    # Convert tensors to numpy
-    X = X.cpu().detach().numpy()
-    if X_val is not None:
-        X_val = X_val.cpu().detach().numpy()
+        # Convert tensors to numpy
+        X = X.cpu().detach().numpy()
+        if X_val is not None:
+            X_val = X_val.cpu().detach().numpy()
+    else:
+        if X_val is not None:
+            X_val = X_val.cpu().detach().numpy()
 
-    print('Y shape', Y)
-    print('Yval shape', Y_val)
-    return
+    if not load_model: # train the MLP
+        # fit the model
+        if task.lower() == "regression":
+            model = MLPRegressor().fit(X, Y)
+        elif task.lower() == "classification":
+            model = MLPClassifier(hidden_layer_sizes=(128,64,16)).fit(X, Y)
+        else:
+            raise ValueError("Invalid task")
+        
+        # If validation data is provided, make predictions on that, otherwise on training data
+        if X_val is not None and Y_val is not None:
+            predictions = model.predict(X_val)
+        else:
+            predictions = model.predict(X)
+
+        if save_model:
+            print(f"Saving MLP model to {save_model_path}")
+            pickle.dump(model, open(save_model_path+'.pkl', 'wb+'))
+
+    else: # load in frozen MLP model
+        print(f"Loading MLP model from {load_model_path}")
+        model = pickle.load(open(load_model_path+'.pkl', 'rb'))
+        # If validation data is provided, make predictions on that, otherwise on training data
+        if X_val is not None and Y_val is not None:
+            predictions = model.predict(X_val)
+        else:
+            predictions = model.predict(X)
+
+    # Convert numpy array back to PyTorch tensor and flatten to 1D
+    predictions_tensor = torch.from_numpy(predictions).flatten()
+
+    return predictions_tensor
     
 
 
@@ -1058,6 +1097,7 @@ def mergekfold_results(results: List[Dict[str, Any]]) -> pd.DataFrame:
 
     # Convert the concatenated results to a DataFrame
     concatenated_df = pd.DataFrame(concatenated_results)
+    # concatenated_df.to_csv('confusion_plots/conf_df.csv')
 
     return concatenated_df
 
@@ -1105,7 +1145,7 @@ def save_normalized_conf_matrices(
         filename = f"{output_dir}/{row['Model']}_{row['Combination']}.png".replace(
             " ", ""
         )
-        plt.savefig(filename)
+        plt.savefig(filename, dpi=300)
         plt.close()  # Close the plot to free memory
         print(f"Saved plot to {filename}")
 

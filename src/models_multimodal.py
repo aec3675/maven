@@ -354,7 +354,6 @@ class LightCurveImageCLIP(pl.LightningModule):
                 # x.squeeze(), classification.long()
                 x.squeeze(), multipeak.long()
             )
-            # print('CROSS ENTROPY CHECK 1', x)
             self.y_pred.append(x)
             # self.y_true.append(classification)
             self.y_true.append(multipeak)

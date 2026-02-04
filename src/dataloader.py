@@ -6,6 +6,7 @@ import numpy as np
 from typing import List, Tuple, Optional, Dict
 from PIL import Image
 from pathlib import Path
+import pickle
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -819,6 +820,8 @@ def load_data(
     spectral_rescalefactor: float = 1e14,
     filenames: List[str] = None,
     kfolds: int = 5,
+    handpicked_folds: bool = False,
+    handpicked_folds_dictpath: str = None,
 ) -> Tuple[TensorDataset, int, List[str], List[Dict]]:
     """
     Load data from specified directories, handling images, light curves, and/or spectra as defined by combinations.
@@ -929,27 +932,37 @@ def load_data(
     redshifts = torch.from_numpy(redshifts).float()
     data += [redshifts]
 
-    # # Load transient types
-    # classifications, filenames_classifications = load_classes(
-    #     f"{data_dir}", n_classes, filenames
-    # )
+    #UNCOMMENT FOR SN TYPE CLASSIFICATION
+    """
+    # Load transient types
+    classifications, filenames_classifications = load_classes(
+        f"{data_dir}", n_classes, filenames
+    )
+    _, filenames, data = filter_files(filenames_classifications, filenames, data)
+    # Prepare dataset with spectra data
+    classifications = torch.from_numpy(classifications).int()
+    data += [classifications]
+    """
 
-    # _, filenames, data = filter_files(filenames_classifications, filenames, data)
-
-    # # Prepare dataset with spectra data
-    # classifications = torch.from_numpy(classifications).int()
-    # data += [classifications]
-
+    # UNCOMMENT BELOW FOR MULTIPEAK DATALOADING
     #Load in multipeakedness flag
     multipeak, filenames_multipeak = load_multipeak(f"{data_dir}", filenames)
     _, filenames, data = filter_files(filenames_multipeak, filenames, data)
-    
     #prepare dataset w/ multipeak data
     multipeak = torch.from_numpy(multipeak).int()
     data += [multipeak]
 
     if kfolds is None:
         folds = None
+    elif handpicked_folds:
+        folds = []
+        print('Using hand-picked kfold splits...')
+        with open(handpicked_folds_dictpath, 'rb') as file:
+            splits = pickle.load(file)
+        for i, kfold in enumerate(splits.keys()):
+            train_index = np.array(splits[kfold][0])
+            test_index = np.array(splits[kfold][1])
+            folds.append({"train_indices": train_index, "test_indices": test_index})
     else:
         folds = []
         skf = StratifiedKFold(n_splits=kfolds)

@@ -156,14 +156,7 @@ def train_sweep(config=None):
                 n_classes=n_classes,
             )
         else:
-            # model = clip_model #model.classification is False here
-            model = LightCurveImageCLIP(
-                optimizer_kwargs=optimizer_kwargs, 
-                combinations=combinations,
-                regression=regression,
-                classification=classification,
-                n_classes=n_classes,
-            ) # model.classification is True, ends with 2 out_variables in model architecture 
+            model = clip_model #model.classification is False here 
 
         # Custom call back for tracking loss
         loss_tracking_callback = LossTrackingCallback()
@@ -181,10 +174,12 @@ def train_sweep(config=None):
         early_stop_callback = EarlyStopping(
             monitor="val_loss",
             min_delta=0.00,
-            patience=cfg.patience, #TODO: maybe change to 10
+            patience=cfg.patience, #NOTE: maybe change to 10
             verbose=False,
             mode="min",
         )
+
+        # print(model)
 
         trainer = pl.Trainer(
             max_epochs=cfg.epochs,
@@ -288,6 +283,11 @@ if __name__ == "__main__":
     pretrain_path = cfg["extra_args"].get("pretrain_path")
     freeze_backbone = cfg["extra_args"].get("freeze_backbone")
 
+    #if using handpicked kfold splits:
+    handpicked_folds = cfg["extra_args"].get("handpicked_folds")
+    if handpicked_folds:
+        handpicked_folds_dictpath = cfg["extra_args"].get("handpicked_folds_dictpath")
+    
     # Check if the config file has a spectra key
     if "spectral" in combinations:
         data_dirs = ["all_spectra", "data/test/all_spectra"] #["ZTFBTS_spectra/", "data/ZTFBTS_spectra/"]
@@ -306,6 +306,8 @@ if __name__ == "__main__":
         n_classes=n_classes,
         spectral_rescalefactor=cfg["extra_args"]["spectral_rescalefactor"],
         kfolds=cfg["extra_args"].get("kfolds", None),
+        handpicked_folds=handpicked_folds,
+        handpicked_folds_dictpath=handpicked_folds_dictpath,
     )
 
     wandb.agent(
