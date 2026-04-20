@@ -375,7 +375,15 @@ def load_redshifts(data_dir: str, filenames: List[str] = None) -> np.ndarray:
 
 def load_multipeak(data_dir: str, filenames: List[str] = None) -> np.ndarray:
     """
-    TODO
+    Loads one-hot encoded single- vs multi-peaked flags from a CSV file in the specified directory.
+
+    Args:
+    data_dir (str): Directory path containing the redshift CSV file.
+    filenames (List[str]): List of filenames corresponding to the loaded data; default is None.
+
+    Returns:
+    np.ndarray: Array of one-hot encoded multi-peak flags.
+    filenames (List[str]): List of filenames corresponding to the returned data.
     """
     print("Loading multipeaked-ness...")
 

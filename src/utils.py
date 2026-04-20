@@ -3,6 +3,7 @@ from typing import List, Optional
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import Callback
 import torch
+import torch.nn as nn
 import numpy as np
 from torch.utils.data import DataLoader
 from typing import Tuple, List, Dict, Any
@@ -538,7 +539,7 @@ def get_linear_predictions(
 
     return predictions_tensor
 
-def get_mlp_predictions(
+def get_sklearn_mlp_predictions(
     X: torch.Tensor,
     Y: torch.Tensor,
     X_val: Optional[torch.Tensor] = None,
@@ -592,6 +593,162 @@ def get_mlp_predictions(
 
     # Convert numpy array back to PyTorch tensor and flatten to 1D
     predictions_tensor = torch.from_numpy(predictions).flatten()
+
+    return predictions_tensor
+
+
+class PyTorchMLP(nn.Module):
+    def __init__(self, input_dim):
+        super(PyTorchMLP, self).__init__()
+        # Define the layers: one hidden layer with 100 units
+        self.layers = nn.Sequential(
+            nn.Linear(input_dim, 128),
+            nn.ReLU(),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Linear(64, 16),
+            nn.ReLU(),
+            nn.Linear(16, 1)
+        )
+
+    def forward(self, x):
+        # Pass the input through the sequential layers
+        return self.layers(x)
+    
+class EarlyStopping:
+    def __init__(self, patience=10, min_delta=1e-6):
+        self.patience = patience
+        self.min_delta = min_delta
+        self.counter = 0
+        self.best_loss = None
+        self.early_stop = False
+
+    def __call__(self, val_loss):
+        if self.best_loss is None:
+            self.best_loss = val_loss
+        elif val_loss > self.best_loss - self.min_delta:
+            self.counter += 1
+            if self.counter >= self.patience:
+                self.early_stop = True
+        else:
+            self.best_loss = val_loss
+            self.counter = 0
+        return self.early_stop
+
+
+
+def get_mlp_predictions(
+    X: torch.Tensor,
+    Y: torch.Tensor,
+    X_val: Optional[torch.Tensor] = None,
+    Y_val: Optional[torch.Tensor] = None,
+    task: str = "regression",
+    pos_weights = Optional[float] == 1.0,
+    save_model: Optional[bool] = False,
+    save_model_path: Optional[str] = "models/",
+    load_model: Optional[bool] = False,
+    load_model_path: Optional[str] = "models/",
+    save_loss_plot: Optional[bool] = True,
+    save_loss_path: Optional[str] = "handpicked-kfold-results/",
+    verbose: bool = False,
+) -> torch.Tensor:
+    # Ensure Y is 2D (necessary for sklearn)
+    if len(Y.shape) == 1:
+        Y = Y[:, np.newaxis]
+    if len(Y_val.shape) == 1:
+        Y_val = Y_val[:, np.newaxis]
+    # if not load_model: # train the MLP
+    #     # Ensure Y is 2D (necessary for sklearn)
+    #     if len(Y.shape) == 1:
+    #         Y = Y[:, np.newaxis]
+
+    #     # Convert tensors to numpy
+    #     X = X.cpu().detach().numpy()
+    #     if X_val is not None:
+    #         X_val = X_val.cpu().detach().numpy()
+    # else:
+    #     if X_val is not None:
+    #         X_val = X_val.cpu().detach().numpy()
+
+    if not load_model: # train the MLP
+        # fit the model
+        if task.lower() == "regression":
+            model = MLPRegressor().fit(X, Y)
+        elif task.lower() == "classification":
+            model = PyTorchMLP(input_dim=X.shape[1])
+            criterion = nn.BCEWithLogitsLoss(pos_weight=torch.FloatTensor([pos_weights])) #add class weights for positive class (double peak)
+            optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+            model.train()
+
+            # Itialize early stopping
+            early_stopping = EarlyStopping(patience=10, min_delta=1e-6)
+
+            epochs = 100000
+            losses ,losses_val = [],[]
+            for epoch in range(epochs):
+                #training set
+                optimizer.zero_grad()        # a. Clear gradients
+                outputs = model(X)           # b. Forward pass
+                loss = criterion(outputs, Y.float()) # c. Calculate loss
+                losses.append(loss.detach().numpy())
+                loss.backward()              # d. Backward pass
+                optimizer.step()             # e. Update weights
+                
+                #validation set
+                outputs = model(X_val)
+                loss_val = criterion(outputs, Y_val.float()) # c. Calculate loss
+                losses_val.append(loss_val.detach().numpy())
+                
+                if early_stopping(loss_val):
+                    print(f'Early stopping triggered at epoch {epoch + 1}')
+                    break
+                
+                if verbose:                  # f. Print loss every 50 iterations
+                    if (epoch + 1) % 50 == 0:
+                        print(f'Iteration [{epoch + 1}/{epochs}], Loss: {loss.item():.4f}')
+            if save_loss_plot:
+                plt.figure()
+                plt.plot(range(epoch+1), np.log10(losses), label='training')
+                plt.plot(range(epoch+1), np.log10(losses_val), label='validation')
+                plt.ylabel('log(loss)')
+                plt.legend()
+                plt.title(save_loss_path[50:-13],fontsize=8)
+                plt.savefig(save_loss_path, dpi=300)
+            model.eval()
+        else:
+            raise ValueError("Invalid task")
+        
+        # If validation data is provided, make predictions on that, otherwise on training data
+        if X_val is not None and Y_val is not None:
+            with torch.no_grad():
+                logits = model(X_val)
+                probs = torch.sigmoid(logits)        # Apply sigmoid to get probabilities
+                predictions = (probs >= 0.5).float() # Convert probabilities to binary predictions (threshold = 0.5)
+        else:
+            with torch.no_grad():
+                logits = model(X)
+                probs = torch.sigmoid(logits)        # Apply sigmoid to get probabilities
+                predictions = (probs >= 0.5).float() # Convert probabilities to binary predictions (threshold = 0.5)
+
+        if save_model:
+            print(f"Saving MLP model to {save_model_path}")
+            pickle.dump(model, open(save_model_path+'.pkl', 'wb+'))
+
+    else: # load in frozen MLP model
+        print(f"Loading MLP model from {load_model_path}")
+        model = pickle.load(open(load_model_path+'.pkl', 'rb'))
+        # If validation data is provided, make predictions on that, otherwise on training data
+        if X_val is not None and Y_val is not None:
+            logits = model(X_val)
+            probs = torch.sigmoid(logits)        
+            predictions = (probs >= 0.5).float() 
+        else:
+            logits = model(X)
+            probs = torch.sigmoid(logits)        
+            predictions = (probs >= 0.5).float() 
+
+    # Flatten to 1D
+    predictions_tensor = predictions.flatten()
 
     return predictions_tensor
     
@@ -1103,7 +1260,7 @@ def mergekfold_results(results: List[Dict[str, Any]]) -> pd.DataFrame:
 
 
 def save_normalized_conf_matrices(
-    df: pd.DataFrame, class_names: dict, output_dir: str = "confusion_matrices"
+    df: pd.DataFrame, class_names: dict, output_dir: str = "confusion_matrices", kfold: None = None,
 ) -> None:
     """
     Calculates and saves a normalized confusion matrix for each entry in a DataFrame.
@@ -1127,24 +1284,31 @@ def save_normalized_conf_matrices(
 
         # Create the plot
         plt.figure(figsize=(10, 8))
-        sns.heatmap(
+        ax = sns.heatmap(
             cm_normalized,
             annot=True,
+            annot_kws={"size": 28},
             fmt=".2f",
-            cmap="Blues",
+            cmap="Purples",
             xticklabels=[class_names[label][0] for label in sorted(class_names)],
             yticklabels=[class_names[label][0] for label in sorted(class_names)],
             vmin=0,
             vmax=1,
         )
+        ax.tick_params(axis='both', labelsize=18)
         plt.title(f'Normalized Confusion Matrix: {row["Model"]}, {row["Combination"]}')
-        plt.xlabel("Predicted Label")
-        plt.ylabel("True Label")
+        plt.xlabel("Predicted Label", fontsize=22)
+        plt.ylabel("True Label", fontsize=22)
 
         # Generate filename and save the plot
-        filename = f"{output_dir}/{row['Model']}_{row['Combination']}.png".replace(
-            " ", ""
-        )
+        if not kfold:
+            filename = f"{output_dir}/{row['Model']}_{row['Combination']}.png".replace(
+                " ", ""
+            )
+        else:
+            filename = f"{output_dir}/{row['Model']}_{row['Combination']}_fold{kfold}.png".replace(
+                " ", ""
+            )
         plt.savefig(filename, dpi=300)
         plt.close()  # Close the plot to free memory
         print(f"Saved plot to {filename}")
