@@ -653,9 +653,9 @@ def get_mlp_predictions(
     verbose: bool = False,
 ) -> torch.Tensor:
     # Ensure Y is 2D (necessary for sklearn)
-    if len(Y.shape) == 1:
+    if (Y is not None) and (len(Y.shape) == 1):
         Y = Y[:, np.newaxis]
-    if len(Y_val.shape) == 1:
+    if (Y_val is not None) and (len(Y_val.shape) == 1):
         Y_val = Y_val[:, np.newaxis]
     # if not load_model: # train the MLP
     #     # Ensure Y is 2D (necessary for sklearn)
