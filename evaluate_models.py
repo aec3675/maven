@@ -34,13 +34,15 @@ class_names = {
     1: ("double-peaked", "green"),
 }
 
+save_dir_path = "handpicked-kfold-results/augmented_dataset_results/5fold-results/200epochs"
+
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Load models
 set_seed(0)
 
-# KNNparameters = [1,2,3,5,7,8,9]
-KNNparameters = [3,5]
+KNNparameters = [1,2,3,5,7,8,9]
+# KNNparameters = [3,5]
 mlp_pos_weight = 1.0 # pre-gp weight = 5.0
 
 directories = [
@@ -50,6 +52,8 @@ directories = [
     # "models/multipeak-finetune-weights0208-cTrF-newinit/", 
     # "models/multipeak-finetune-cFrF-picked-kfolds",        #<-first null result, hand-picked kfolds
     "models/multipeak-finetune-cFrF-picked-kfolds-aug",    #<-60/40 augmented dataset from gopreaux
+    # "models/multipeak-finetune-cFrF-picked-kfolds-aug-3fold", #<-50/50 augmented dataset from gopreaux, 3 kfolds
+    # "models/multipeak-finetune-cFrF-picked-kfolds-aug-3fold-randdrop", #<-50/50 augmented dataset from gopreaux, 3 kfolds, random sp dropped
     # "models/clip_finetune",                              #<-maven results
 ]  
 names = [
@@ -59,6 +63,8 @@ names = [
     # "multipeak-finetune-weights0208-cTrF-newinit/",
     # "multipeak-finetune-cFrF-picked-kfolds"               #<-first null result, hand-picked kfolds
     "multipeak-finetune-cFrF-picked-kfolds-aug",    #<-60/40 augmented dataset from gopreaux
+    # "multipeak-finetune-cFrF-picked-kfolds-aug-3fold", #<-50/50 augmented dataset from gopreaux, 3 kfolds
+    # "multipeak-finetune-cFrF-picked-kfolds-aug-3fold-randdrop", #<-50/50 augmented dataset from gopreaux, 3 kfolds, random sp dropped
     # "clip_finetune",                                    #<-maven results
 ]
 models = []
@@ -372,12 +378,15 @@ for output, label, id in zip(models, labels, ids):
                             y_true_label,
                             task=task,
                             pos_weights=mlp_pos_weight,
+                            seed=cfg["seed"],
                             save_model=True,
-                            save_model_path=f"models/mlp-states/{label}+MLP+{n_classes}_{combs[i]}_kfold{kfold}_w{mlp_pos_weight}",
+                            save_model_path=f"models/mlp-states/5fold-longrun/{label}+MLP+{n_classes}_{combs[i]}_kfold{kfold}_w{mlp_pos_weight}",
                             load_model=False,
                             load_model_path='',
                             save_loss_plot=True,
-                            save_loss_path=f"handpicked-kfold-results/augmented_dataset_results/{label}+MLP+{n_classes}_{combs[i]}_kfold{kfold}_w{mlp_pos_weight}_lossfunc.png",
+                            save_loss_path=f"{save_dir_path}/per-fold-results/{label}+MLP+{n_classes}_{combs[i]}_kfold{kfold}_w{mlp_pos_weight}_lossfunc.png",
+                            save_loss_outputs=True,
+                            save_loss_op_path=f"{save_dir_path}/per-fold-results/{label}+MLP+{n_classes}_{combs[i]}_kfold{kfold}_w{mlp_pos_weight}_loss_outputs.csv"
                         )
                         metrics, results = calculate_metrics(
                             y_true,
@@ -392,11 +401,11 @@ for output, label, id in zip(models, labels, ids):
                         classification_metrics_list.append(metrics)
                         collect_classification_results.append(results)
 
-                        #making per-fold confusion matrices for MLP performance
-                        results_mlp_df = pd.DataFrame(data=[results])
-                        save_normalized_conf_matrices(results_mlp_df, class_names,
-                                                      output_dir="handpicked-kfold-results/augmented_dataset_results/per-fold-predictions",
-                                                      kfold=str(kfold)) #confusion_plots
+                        # #making per-fold confusion matrices for MLP performance
+                        # results_mlp_df = pd.DataFrame(data=[results])
+                        # save_normalized_conf_matrices(results_mlp_df, class_names,
+                        #                               output_dir=f"{save_dir_path}/per-fold-results",
+                        #                               kfold=str(kfold)) #confusion_plots
                         
                         for kneighbours in KNNparameters: 
                             y_pred_knn = get_knn_predictions(
@@ -503,12 +512,15 @@ for output, label, id in zip(models, labels, ids):
                                 y_true_label,
                                 task=task,
                                 pos_weights=mlp_pos_weight,
+                                seed=cfg["seed"],
                                 save_model=True,
-                                save_model_path=f"models/mlp-states/{label}+MLP+{n_classes}_{combs[i]}and{combs[j]}_kfold{kfold}_w{mlp_pos_weight}",
+                                save_model_path=f"models/mlp-states/5fold-longrun/{label}+MLP+{n_classes}_{combs[i]}and{combs[j]}_kfold{kfold}_w{mlp_pos_weight}",
                                 load_model=False,
                                 load_model_path='',
                                 save_loss_plot=True,
-                                save_loss_path=f"handpicked-kfold-results/augmented_dataset_results/{label}+MLP+{n_classes}_{combs[i]}_kfold{kfold}_w{mlp_pos_weight}_lossfunc.png",
+                                save_loss_path=f"{save_dir_path}/per-fold-results/{label}+MLP+{n_classes}_{combs[i]}_kfold{kfold}_w{mlp_pos_weight}_lossfunc.png",
+                                save_loss_outputs=True,
+                                save_loss_op_path=f"{save_dir_path}/per-fold-results/{label}+MLP+{n_classes}_{combs[i]}_kfold{kfold}_w{mlp_pos_weight}_loss_outputs.csv"
                             )
 
                             metrics, results = calculate_metrics(
@@ -524,11 +536,11 @@ for output, label, id in zip(models, labels, ids):
                             classification_metrics_list.append(metrics)
                             collect_classification_results.append(results)
 
-                            #making per-fold confusion matrices for MLP performance
-                            results_mlp_df = pd.DataFrame(data=[results])
-                            save_normalized_conf_matrices(results_mlp_df, class_names,
-                                                        output_dir="handpicked-kfold-results/augmented_dataset_results/per-fold-predictions",
-                                                        kfold=str(kfold)) #confusion_plots
+                            # #making per-fold confusion matrices for MLP performance
+                            # results_mlp_df = pd.DataFrame(data=[results])
+                            # save_normalized_conf_matrices(results_mlp_df, class_names,
+                            #                             output_dir=f"{save_dir_path}/per-fold-results",
+                            #                             kfold=str(kfold)) #confusion_plots
 
                             for kneighbours in KNNparameters:
                                 y_pred_knn = get_knn_predictions(
@@ -573,6 +585,8 @@ for output, label, id in zip(models, labels, ids):
 #             1: ("SN Ia", "purple"),
 #         }
 
+# quit()
+
 class_names = {
     0: ("single-peaked", "blue"),
     1: ("double-peaked", "green"),
@@ -580,35 +594,19 @@ class_names = {
 
 # non-augmented results saved to: evaluation_metrics_2
 # augmented dataset results saved to: evaluation_metrics_3
-os.makedirs("evaluation_metrics_3", exist_ok=True)
+# os.makedirs("evaluation_metrics_3", exist_ok=True)
 
 ## for augmented dataset saving:
 # Convert metrics list to a DataFrame
 if len(collect_classification_results) > 0:
     # print_metrics_in_latex(classification_metrics_list)
-    # Save metric to file
-    with open("evaluation_metrics_3/classification_metrics_list_handpicked_kfold_augmented_dataset.pkl", "wb") as file:
-        pickle.dump(classification_metrics_list, file)
-    with open("evaluation_metrics_3/collect_classification_results_handpicked_kfold_augmented_dataset.pkl", "wb") as file:
-        pickle.dump(collect_classification_results, file)
+    # # Save metric to file
+    # with open("evaluation_metrics_3/classification_metrics_list_handpicked_kfold_augmented_equalsplit_dataset.pkl", "wb") as file:
+    #     pickle.dump(classification_metrics_list, file)
+    # with open("evaluation_metrics_3/collect_classification_results_handpicked_kfold_augmented_equalsplit_dataset.pkl", "wb") as file:
+    #     pickle.dump(collect_classification_results, file)
     merged_classification = mergekfold_results(collect_classification_results)
-    save_normalized_conf_matrices(merged_classification, class_names, output_dir="handpicked-kfold-results/augmented_dataset_results") #confusion_plots
-
-
-
-
-# #for 90/10 pre-augmented dataset saving
-# # Convert metrics list to a DataFrame
-# if len(collect_classification_results) > 0:
-#     # print_metrics_in_latex(classification_metrics_list)
-#     # Save metric to file
-#     with open("evaluation_metrics_2/classification_metrics_list_handpicked_kfold.pkl", "wb") as file:
-#         pickle.dump(classification_metrics_list, file)
-#     with open("evaluation_metrics_2/collect_classification_results_handpicked_kfold.pkl", "wb") as file:
-#         pickle.dump(collect_classification_results, file)
-#     merged_classification = mergekfold_results(collect_classification_results)
-#     save_normalized_conf_matrices(merged_classification, class_names, output_dir="handpicked-kfold-results") #confusion_plots
-
+    save_normalized_conf_matrices(merged_classification, class_names, output_dir=save_dir_path) #confusion_plots
 
 
 

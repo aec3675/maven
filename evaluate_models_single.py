@@ -35,18 +35,28 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 # Load models
 set_seed(0)
 
+# to read in
+weight2read = 1.0
+model_label2read = 'multipeak-finetune-cFrF-picked-kfolds-aug'
+
 directories = [
     # "models/multipeak-finetune-cFrF",
-    "models/multipeak-finetune-noweights-cFrF",
+    # "models/multipeak-finetune-noweights-cFrF",
     # "models/multipeak-finetune-weights0210-cTrF",
     # "models/multipeak-finetune-weights0208-cTrF-newinit/", 
+    # "models/multipeak-finetune-cFrF-picked-kfolds",
+    # "models/multipeak-finetune-cFrF-picked-kfolds-aug",
+    f"models/{model_label2read}"
     # "models/clip_finetune",                             #<-maven results
 ]  
 names = [
     # "multipeak-finetune-cFrF",
-    "multipeak-finetune-noweights-cFrF",
+    # "multipeak-finetune-noweights-cFrF",
     # "multipeak-finetune-weights0210-cTrF",
     # "multipeak-finetune-weights0208-cTrF-newinit/",
+    # "multipeak-finetune-cFrF-picked-kfolds",
+    # "multipeak-finetune-cFrF-picked-kfolds-aug",
+    f"{model_label2read}"
     # "clip_finetune",                                    #<-maven results
 ]
 models = []
@@ -106,6 +116,7 @@ collect_regression_results = []
 
 # filename_idx = 0
 kfold = 0
+best_loss_epochs = [124, 99, 110, 89, 118]
 objs, true_labels, pred_labels, datatypes ,kfolds = [],[],[],[],[]
 
 for output, label, id_ in zip(models, labels, ids):
@@ -196,7 +207,6 @@ for output, label, id_ in zip(models, labels, ids):
                 # print(f"Train set linear regression R2 value for {combs[i]}: {get_linearR2(embs_list_train[i], y_true_train)}")
                 print(f"---- {combs[i]} input ---- ")
                 for task in ["regression", "classification"]:
-                    # Regression only for five classes
                     if task == "classification":                    
                         y_pred_mlp = get_mlp_predictions(
                             None, # copy as placeholder; won't actually be used
@@ -205,12 +215,11 @@ for output, label, id_ in zip(models, labels, ids):
                             y_true_label,
                             task=task,
                             save_model=False,
-                            save_model_path=f"models/{label}+MLP+{n_classes}_{combs[i]}_kfold{kfold}",
                             load_model=True,
-                            load_model_path=f"models/mlp-states/multipeak-finetune-noweights-cFrF+MLP+two_{combs[i]}_kfold{kfold}",
+                            load_model_path=f"models/mlp-states/5fold-longrun/{model_label2read}+MLP+two_{combs[i]}_kfold{kfold}_w{weight2read}_epoch{best_loss_epochs[kfold]}",
+                            seed=cfg["seed"],
                         )
                         
-                        # print('YPRED MLP single-modality', y_pred_mlp)
                         objs.append(val_filename)
                         true_labels.append(y_true_label)
                         pred_labels.append(y_pred_mlp)
@@ -232,12 +241,11 @@ for output, label, id_ in zip(models, labels, ids):
                                 y_true_label,
                                 task=task,
                                 save_model=False,
-                                save_model_path=f"models/{label}+MLP+{n_classes}_{combs[i]}and{combs[j]}_kfold{kfold}",
                                 load_model=True,
-                                load_model_path=f"models/mlp-states/multipeak-finetune-noweights-cFrF+MLP+two_{combs[i]}and{combs[j]}_kfold{kfold}",
+                                load_model_path=f"models/mlp-states/5fold-longrun/{model_label2read}+MLP+two_{combs[i]}and{combs[j]}_kfold{kfold}_w{weight2read}_epoch{best_loss_epochs[kfold]}",
+                                seed=cfg["seed"],
                             )
                             
-                            # print('YPRED double-modality', y_pred_mlp)
                             objs.append(val_filename)
                             true_labels.append(y_true_label)
                             pred_labels.append(y_pred_mlp)
@@ -268,4 +276,4 @@ datadict = {
 }
 
 single_obj_predictions_df = pd.DataFrame.from_dict(datadict)
-single_obj_predictions_df.to_csv(f'./{label}+MLP+{n_classes}_single_objs.csv', index_label=False)
+single_obj_predictions_df.to_csv(f'./{label}+MLP+{n_classes}_w{weight2read}_200epochs_single_objs.csv', index=False)

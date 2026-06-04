@@ -20,6 +20,8 @@ from sklearn.metrics import (
     accuracy_score,
     recall_score,
     balanced_accuracy_score,
+    roc_curve,
+    auc,
 )
 from sklearn.neural_network import MLPClassifier, MLPRegressor
 from torch.nn import Module
@@ -598,9 +600,12 @@ def get_sklearn_mlp_predictions(
 
 
 class PyTorchMLP(nn.Module):
-    def __init__(self, input_dim):
+    def __init__(self, input_dim, seed):
         super(PyTorchMLP, self).__init__()
-        # Define the layers: one hidden layer with 100 units
+        
+        set_seed(seed) 
+
+        # Define the layers 
         self.layers = nn.Sequential(
             nn.Linear(input_dim, 128),
             nn.ReLU(),
@@ -643,13 +648,16 @@ def get_mlp_predictions(
     X_val: Optional[torch.Tensor] = None,
     Y_val: Optional[torch.Tensor] = None,
     task: str = "regression",
-    pos_weights = Optional[float] == 1.0,
+    pos_weights: Optional[float] = 1.0,
+    seed: Optional[int] = 0,
     save_model: Optional[bool] = False,
     save_model_path: Optional[str] = "models/",
     load_model: Optional[bool] = False,
     load_model_path: Optional[str] = "models/",
     save_loss_plot: Optional[bool] = True,
     save_loss_path: Optional[str] = "handpicked-kfold-results/",
+    save_loss_outputs: Optional[bool] = True,
+    save_loss_op_path: Optional[str] = "handpicked-kfold-results/",
     verbose: bool = False,
 ) -> torch.Tensor:
     # Ensure Y is 2D (necessary for sklearn)
@@ -657,34 +665,23 @@ def get_mlp_predictions(
         Y = Y[:, np.newaxis]
     if (Y_val is not None) and (len(Y_val.shape) == 1):
         Y_val = Y_val[:, np.newaxis]
-    # if not load_model: # train the MLP
-    #     # Ensure Y is 2D (necessary for sklearn)
-    #     if len(Y.shape) == 1:
-    #         Y = Y[:, np.newaxis]
-
-    #     # Convert tensors to numpy
-    #     X = X.cpu().detach().numpy()
-    #     if X_val is not None:
-    #         X_val = X_val.cpu().detach().numpy()
-    # else:
-    #     if X_val is not None:
-    #         X_val = X_val.cpu().detach().numpy()
 
     if not load_model: # train the MLP
         # fit the model
         if task.lower() == "regression":
             model = MLPRegressor().fit(X, Y)
         elif task.lower() == "classification":
-            model = PyTorchMLP(input_dim=X.shape[1])
+            model = PyTorchMLP(input_dim=X.shape[1], seed=seed)
             criterion = nn.BCEWithLogitsLoss(pos_weight=torch.FloatTensor([pos_weights])) #add class weights for positive class (double peak)
             optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
             model.train()
 
-            # Itialize early stopping
-            early_stopping = EarlyStopping(patience=10, min_delta=1e-6)
+            # # Itialize early stopping
+            # early_stopping = EarlyStopping(patience=10, min_delta=1e-6)
 
-            epochs = 100000
-            losses ,losses_val = [],[]
+            # best_loss_val = float('inf')
+            epochs = 200
+            losses,losses_val = [],[]
             for epoch in range(epochs):
                 #training set
                 optimizer.zero_grad()        # a. Clear gradients
@@ -699,13 +696,20 @@ def get_mlp_predictions(
                 loss_val = criterion(outputs, Y_val.float()) # c. Calculate loss
                 losses_val.append(loss_val.detach().numpy())
                 
-                if early_stopping(loss_val):
-                    print(f'Early stopping triggered at epoch {epoch + 1}')
-                    break
+                # if early_stopping(loss_val):
+                #     print(f'Early stopping triggered at epoch {epoch + 1}')
+                #     break
+
+                # if loss_val < best_loss_val: #where val_loss is the full epoch loss, batch average
+                #     best_loss_val = loss_val
+                torch.save(model.state_dict(), save_model_path+f'_epoch{epoch}.pt')
                 
                 if verbose:                  # f. Print loss every 50 iterations
                     if (epoch + 1) % 50 == 0:
                         print(f'Iteration [{epoch + 1}/{epochs}], Loss: {loss.item():.4f}')
+            if save_loss_outputs:
+                data = np.column_stack((range(epoch+1), losses, losses_val))
+                np.savetxt(save_loss_op_path, data, delimiter=',', header='epoch,loss,loss_val')
             if save_loss_plot:
                 plt.figure()
                 plt.plot(range(epoch+1), np.log10(losses), label='training')
@@ -714,6 +718,7 @@ def get_mlp_predictions(
                 plt.legend()
                 plt.title(save_loss_path[50:-13],fontsize=8)
                 plt.savefig(save_loss_path, dpi=300)
+            
             model.eval()
         else:
             raise ValueError("Invalid task")
@@ -730,13 +735,19 @@ def get_mlp_predictions(
                 probs = torch.sigmoid(logits)        # Apply sigmoid to get probabilities
                 predictions = (probs >= 0.5).float() # Convert probabilities to binary predictions (threshold = 0.5)
 
-        if save_model:
-            print(f"Saving MLP model to {save_model_path}")
-            pickle.dump(model, open(save_model_path+'.pkl', 'wb+'))
+        #NOTE: commenting out for now, while running fixed-epoch version
+        # if save_model:
+        #     print(f"Saving MLP model to {save_model_path}")
+        #     pickle.dump(model, open(save_model_path+'.pkl', 'wb+'))
 
     else: # load in frozen MLP model
         print(f"Loading MLP model from {load_model_path}")
-        model = pickle.load(open(load_model_path+'.pkl', 'rb'))
+        # model = pickle.load(open(load_model_path+'.pkl', 'rb')) #NOTE: early stopping version
+        #              
+        model = PyTorchMLP(input_dim=X_val.shape[1], seed=seed)
+        model.load_state_dict(torch.load(load_model_path + '.pt')) #NOTE: fixed epoch version
+        model.eval()
+
         # If validation data is provided, make predictions on that, otherwise on training data
         if X_val is not None and Y_val is not None:
             logits = model(X_val)
